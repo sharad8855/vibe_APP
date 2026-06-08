@@ -231,171 +231,174 @@ class _UploadBox extends StatelessWidget {
   }
 
   Widget _buildIdleState() {
-    return Column(
+    return SingleChildScrollView(
       key: const ValueKey('idle'),
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        // Sparkle Video Icon
-        SizedBox(
-          height: 90,
-          width: 140,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              // Purple gradient video circle
-              Container(
-                width: 74,
-                height: 74,
+      physics: const BouncingScrollPhysics(),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // Sparkle Video Icon
+          SizedBox(
+            height: 90,
+            width: 140,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                // Purple gradient video circle
+                Container(
+                  width: 74,
+                  height: 74,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: const Color(0xFFECEBFF),
+                    boxShadow: [
+                      BoxShadow(
+                        color: EditoColors.primary.withValues(alpha: 0.08),
+                        blurRadius: 18,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                  ),
+                  child: Center(
+                    child: Container(
+                      width: 54,
+                      height: 54,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            const Color(0xFF8E78FF),
+                            EditoColors.primary,
+                          ],
+                        ),
+                      ),
+                      child: const Icon(
+                        Icons.play_arrow_rounded,
+                        color: Colors.white,
+                        size: 36,
+                      ),
+                    ),
+                  ),
+                ),
+                // Sparkles left
+                const Positioned(
+                  left: 12,
+                  top: 24,
+                  child: Icon(
+                    Icons.auto_awesome_rounded,
+                    color: Color(0xFF8E78FF),
+                    size: 16,
+                  ),
+                ),
+                const Positioned(
+                  left: 28,
+                  bottom: 12,
+                  child: Icon(
+                    Icons.auto_awesome_rounded,
+                    color: Color(0xFF8E78FF),
+                    size: 10,
+                  ),
+                ),
+                // Sparkles right
+                const Positioned(
+                  right: 14,
+                  top: 18,
+                  child: Icon(
+                    Icons.auto_awesome_rounded,
+                    color: Color(0xFF8E78FF),
+                    size: 19,
+                  ),
+                ),
+                const Positioned(
+                  right: 24,
+                  bottom: 22,
+                  child: Icon(
+                    Icons.auto_awesome_rounded,
+                    color: Color(0xFF8E78FF),
+                    size: 11,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'Upload Edited Video',
+            style: GoogleFonts.poppins(
+              color: EditoColors.dark,
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Upload a fully edited video that will be\nused as a template',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.inter(
+              color: EditoColors.body.withValues(alpha: 0.76),
+              fontSize: 13.5,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 18),
+
+          // Select Button
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: onSelect,
+              child: Container(
+                height: 48,
+                padding: const EdgeInsets.symmetric(horizontal: 22),
                 decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: const Color(0xFFECEBFF),
-                  boxShadow: [
+                  borderRadius: BorderRadius.circular(12),
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF5E2DFF), Color(0xFF7D33FF)],
+                  ),
+                  boxShadow: const [
                     BoxShadow(
-                      color: EditoColors.primary.withValues(alpha: 0.08),
+                      color: Color(0x246C63FF),
+                      offset: Offset(0, 8),
                       blurRadius: 18,
-                      offset: const Offset(0, 8),
                     ),
                   ],
                 ),
-                child: Center(
-                  child: Container(
-                    width: 54,
-                    height: 54,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          const Color(0xFF8E78FF),
-                          EditoColors.primary,
-                        ],
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.cloud_upload_outlined,
+                      color: Colors.white,
+                      size: 21,
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      'Select Video',
+                      style: GoogleFonts.inter(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
-                    child: const Icon(
-                      Icons.play_arrow_rounded,
-                      color: Colors.white,
-                      size: 36,
-                    ),
-                  ),
+                  ],
                 ),
-              ),
-              // Sparkles left
-              const Positioned(
-                left: 12,
-                top: 24,
-                child: Icon(
-                  Icons.auto_awesome_rounded,
-                  color: Color(0xFF8E78FF),
-                  size: 16,
-                ),
-              ),
-              const Positioned(
-                left: 28,
-                bottom: 12,
-                child: Icon(
-                  Icons.auto_awesome_rounded,
-                  color: Color(0xFF8E78FF),
-                  size: 10,
-                ),
-              ),
-              // Sparkles right
-              const Positioned(
-                right: 14,
-                top: 18,
-                child: Icon(
-                  Icons.auto_awesome_rounded,
-                  color: Color(0xFF8E78FF),
-                  size: 19,
-                ),
-              ),
-              const Positioned(
-                right: 24,
-                bottom: 22,
-                child: Icon(
-                  Icons.auto_awesome_rounded,
-                  color: Color(0xFF8E78FF),
-                  size: 11,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 10),
-        Text(
-          'Upload Edited Video',
-          style: GoogleFonts.poppins(
-            color: EditoColors.dark,
-            fontSize: 18,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          'Upload a fully edited video that will be\nused as a template',
-          textAlign: TextAlign.center,
-          style: GoogleFonts.inter(
-            color: EditoColors.body.withValues(alpha: 0.76),
-            fontSize: 13.5,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 18),
-
-        // Select Button
-        Material(
-          color: Colors.transparent,
-          child: InkWell(
-            borderRadius: BorderRadius.circular(12),
-            onTap: onSelect,
-            child: Container(
-              height: 48,
-              padding: const EdgeInsets.symmetric(horizontal: 22),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF5E2DFF), Color(0xFF7D33FF)],
-                ),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x246C63FF),
-                    offset: Offset(0, 8),
-                    blurRadius: 18,
-                  ),
-                ],
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(
-                    Icons.cloud_upload_outlined,
-                    color: Colors.white,
-                    size: 21,
-                  ),
-                  const SizedBox(width: 10),
-                  Text(
-                    'Select Video',
-                    style: GoogleFonts.inter(
-                      color: Colors.white,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ],
               ),
             ),
           ),
-        ),
-        const SizedBox(height: 14),
-        Text(
-          'MP4, MOV or AVI • Max 500MB • Up to 2 minutes',
-          style: GoogleFonts.inter(
-            color: EditoColors.body.withValues(alpha: 0.60),
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
+          const SizedBox(height: 14),
+          Text(
+            'MP4, MOV or AVI • Max 500MB • Up to 2 minutes',
+            style: GoogleFonts.inter(
+              color: EditoColors.body.withValues(alpha: 0.60),
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 

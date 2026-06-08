@@ -1,7 +1,14 @@
 part of '../../main.dart';
 
-class MyVideosScreen extends StatelessWidget {
+class MyVideosScreen extends StatefulWidget {
   const MyVideosScreen({super.key});
+
+  @override
+  State<MyVideosScreen> createState() => _MyVideosScreenState();
+}
+
+class _MyVideosScreenState extends State<MyVideosScreen> {
+  String _selectedTab = 'All';
 
   static const _videos = [
     _MyVideoData(
@@ -64,25 +71,84 @@ class MyVideosScreen extends StatelessWidget {
       secondaryColor: EditoColors.accent,
       overlayText: '',
     ),
+    _MyVideoData(
+      title: 'Neon Cyberpunk Promo',
+      category: 'Cyberpunk',
+      updated: 'Updated 4 days ago',
+      status: 'Template',
+      duration: '00:12',
+      color: Color(0xFF00F0FF),
+      secondaryColor: Color(0xFFFF007F),
+      overlayText: 'NEON',
+    ),
   ];
+
+  List<_MyVideoData> get _filteredVideos {
+    if (_selectedTab == 'All') {
+      return _videos.where((v) => v.status != 'Template').toList();
+    }
+    var targetStatus = _selectedTab;
+    if (targetStatus == 'Drafts') targetStatus = 'Draft';
+    if (targetStatus == 'Templates') targetStatus = 'Template';
+    return _videos.where((v) => v.status == targetStatus).toList();
+  }
+
+  int get _totalCount => _videos.where((v) => v.status != 'Template').length;
+  int get _inProgressCount => _videos.where((v) => v.status == 'In Progress').length;
+  int get _completedCount => _videos.where((v) => v.status == 'Completed').length;
+  int get _draftsCount => _videos.where((v) => v.status == 'Draft').length;
 
   @override
   Widget build(BuildContext context) {
+    final filtered = _filteredVideos;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const _MyVideosHeader(),
         const SizedBox(height: 38),
-        const _MyVideosTabs(),
+        _MyVideosTabs(
+          selectedTab: _selectedTab,
+          onTabChanged: (tab) {
+            setState(() {
+              _selectedTab = tab;
+            });
+          },
+        ),
         const SizedBox(height: 23),
-        const _MyVideosStatsRow(),
+        _MyVideosStatsRow(
+          selectedTab: _selectedTab,
+          onTabChanged: (tab) {
+            setState(() {
+              _selectedTab = tab;
+            });
+          },
+          totalCount: _totalCount,
+          inProgressCount: _inProgressCount,
+          completedCount: _completedCount,
+          draftsCount: _draftsCount,
+        ),
         const SizedBox(height: 32),
         const _MyVideosToolbar(),
         const SizedBox(height: 21),
-        for (var i = 0; i < _videos.length; i++) ...[
-          _MyVideoRow(video: _videos[i]),
-          if (i != _videos.length - 1) const SizedBox(height: 14),
-        ],
+        if (filtered.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 40),
+            child: Center(
+              child: Text(
+                'No videos found in this category',
+                style: GoogleFonts.inter(
+                  color: EditoColors.body.withValues(alpha: 0.6),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          )
+        else
+          for (var i = 0; i < filtered.length; i++) ...[
+            _MyVideoRow(video: filtered[i]),
+            if (i != filtered.length - 1) const SizedBox(height: 14),
+          ],
       ],
     );
   }
@@ -131,7 +197,13 @@ class _MyVideosHeader extends StatelessWidget {
 }
 
 class _MyVideosTabs extends StatelessWidget {
-  const _MyVideosTabs();
+  const _MyVideosTabs({
+    required this.selectedTab,
+    required this.onTabChanged,
+  });
+
+  final String selectedTab;
+  final ValueChanged<String> onTabChanged;
 
   static const tabs = [
     'All',
@@ -143,23 +215,32 @@ class _MyVideosTabs extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final selectedIndex = tabs.indexOf(selectedTab).clamp(0, tabs.length - 1);
+
     return Column(
       children: [
         Row(
           children: [
             for (var i = 0; i < tabs.length; i++)
               Expanded(
-                child: Text(
-                  tabs[i],
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.inter(
-                    color: i == 0
-                        ? EditoColors.primary
-                        : EditoColors.body.withValues(alpha: 0.76),
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
+                child: GestureDetector(
+                  onTap: () => onTabChanged(tabs[i]),
+                  behavior: HitTestBehavior.opaque,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Text(
+                      tabs[i],
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.inter(
+                        color: tabs[i] == selectedTab
+                            ? EditoColors.primary
+                            : EditoColors.body.withValues(alpha: 0.76),
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -169,13 +250,19 @@ class _MyVideosTabs extends StatelessWidget {
         Stack(
           children: [
             Container(height: 1, color: EditoColors.border),
-            FractionallySizedBox(
-              widthFactor: 0.15,
-              child: Container(
-                height: 3,
-                decoration: BoxDecoration(
-                  color: EditoColors.primary,
-                  borderRadius: BorderRadius.circular(6),
+            AnimatedAlign(
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeInOut,
+              alignment: Alignment(-1.0 + (selectedIndex * 2.0 / (tabs.length - 1)), 0.0),
+              child: FractionallySizedBox(
+                widthFactor: 1 / tabs.length,
+                child: Container(
+                  height: 3,
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  decoration: BoxDecoration(
+                    color: EditoColors.primary,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
                 ),
               ),
             ),
@@ -187,49 +274,79 @@ class _MyVideosTabs extends StatelessWidget {
 }
 
 class _MyVideosStatsRow extends StatelessWidget {
-  const _MyVideosStatsRow();
+  const _MyVideosStatsRow({
+    required this.selectedTab,
+    required this.onTabChanged,
+    required this.totalCount,
+    required this.inProgressCount,
+    required this.completedCount,
+    required this.draftsCount,
+  });
+
+  final String selectedTab;
+  final ValueChanged<String> onTabChanged;
+  final int totalCount;
+  final int inProgressCount;
+  final int completedCount;
+  final int draftsCount;
 
   @override
   Widget build(BuildContext context) {
     return Row(
-      children: const [
+      children: [
         Expanded(
-          child: _VideoStatCard(
-            icon: Icons.play_arrow_rounded,
-            value: '32',
-            label: 'Total Videos',
-            color: EditoColors.primary,
-            tint: EditoColors.primaryLight,
+          child: GestureDetector(
+            onTap: () => onTabChanged('All'),
+            child: _VideoStatCard(
+              icon: Icons.play_arrow_rounded,
+              value: totalCount.toString(),
+              label: 'Total Videos',
+              color: EditoColors.primary,
+              tint: EditoColors.primaryLight,
+              isActive: selectedTab == 'All',
+            ),
           ),
         ),
-        SizedBox(width: 11),
+        const SizedBox(width: 11),
         Expanded(
-          child: _VideoStatCard(
-            icon: Icons.schedule_rounded,
-            value: '8',
-            label: 'In Progress',
-            color: Color(0xFF5D8CEB),
-            tint: Color(0xFFEAF2FF),
+          child: GestureDetector(
+            onTap: () => onTabChanged('In Progress'),
+            child: _VideoStatCard(
+              icon: Icons.schedule_rounded,
+              value: inProgressCount.toString(),
+              label: 'In Progress',
+              color: const Color(0xFF3182F6),
+              tint: const Color(0xFFEAF2FF),
+              isActive: selectedTab == 'In Progress',
+            ),
           ),
         ),
-        SizedBox(width: 11),
+        const SizedBox(width: 11),
         Expanded(
-          child: _VideoStatCard(
-            icon: Icons.check_rounded,
-            value: '18',
-            label: 'Completed',
-            color: Color(0xFF43C59E),
-            tint: Color(0xFFEDFAF5),
+          child: GestureDetector(
+            onTap: () => onTabChanged('Completed'),
+            child: _VideoStatCard(
+              icon: Icons.check_rounded,
+              value: completedCount.toString(),
+              label: 'Completed',
+              color: const Color(0xFF19A970),
+              tint: const Color(0xFFE7FAF2),
+              isActive: selectedTab == 'Completed',
+            ),
           ),
         ),
-        SizedBox(width: 11),
+        const SizedBox(width: 11),
         Expanded(
-          child: _VideoStatCard(
-            icon: Icons.description_rounded,
-            value: '6',
-            label: 'Drafts',
-            color: Color(0xFFFF6D5F),
-            tint: Color(0xFFFFF0F3),
+          child: GestureDetector(
+            onTap: () => onTabChanged('Drafts'),
+            child: _VideoStatCard(
+              icon: Icons.description_rounded,
+              value: draftsCount.toString(),
+              label: 'Drafts',
+              color: const Color(0xFFFF6D5F),
+              tint: const Color(0xFFFFF0F3),
+              isActive: selectedTab == 'Drafts',
+            ),
           ),
         ),
       ],
@@ -244,6 +361,7 @@ class _VideoStatCard extends StatelessWidget {
     required this.label,
     required this.color,
     required this.tint,
+    required this.isActive,
   });
 
   final IconData icon;
@@ -251,19 +369,25 @@ class _VideoStatCard extends StatelessWidget {
   final String label;
   final Color color;
   final Color tint;
+  final bool isActive;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
       height: 88,
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
       decoration: BoxDecoration(
         color: EditoColors.white,
         borderRadius: BorderRadius.circular(11),
-        boxShadow: const [
+        border: Border.all(
+          color: isActive ? color : Colors.transparent,
+          width: 2,
+        ),
+        boxShadow: [
           BoxShadow(
-            color: Color(0x0D000000),
-            offset: Offset(0, 8),
+            color: isActive ? color.withValues(alpha: 0.15) : const Color(0x0D000000),
+            offset: const Offset(0, 8),
             blurRadius: 24,
           ),
         ],
@@ -635,11 +759,13 @@ class _StatusBadge extends StatelessWidget {
     final color = switch (status) {
       'Completed' => const Color(0xFF19A970),
       'In Progress' => const Color(0xFF3182F6),
+      'Template' => const Color(0xFFFF3F80),
       _ => EditoColors.body,
     };
     final background = switch (status) {
       'Completed' => const Color(0xFFE7FAF2),
       'In Progress' => const Color(0xFFEAF2FF),
+      'Template' => const Color(0xFFFFF0F5),
       _ => const Color(0xFFF1F2F7),
     };
 

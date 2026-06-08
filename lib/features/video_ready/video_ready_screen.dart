@@ -65,8 +65,13 @@ class VideoReadyScreen extends StatelessWidget {
                       _ReadyActionGrid(
                         onDownload: () =>
                             _showAction(context, 'Download started'),
-                        onShare: () =>
-                            _showAction(context, 'Share sheet opened'),
+                        onShare: () => showShareSheet(
+                          context,
+                          title: template.title,
+                          template: template,
+                          sheetTitle: 'Share Video',
+                          subtitlePrefix: 'Share',
+                        ),
                         onInstagram: () =>
                             _showAction(context, 'Instagram export prepared'),
                         onCopy: () => _showAction(context, 'Link copied'),
@@ -93,8 +98,13 @@ class VideoReadyScreen extends StatelessWidget {
                       _SavedToVideosCard(onGo: () => _goHome(context, 2)),
                       const SizedBox(height: 14),
                       _ReadyShareBanner(
-                        onShare: () =>
-                            _showAction(context, 'Share sheet opened'),
+                        onShare: () => showShareSheet(
+                          context,
+                          title: template.title,
+                          template: template,
+                          sheetTitle: 'Share Video',
+                          subtitlePrefix: 'Share',
+                        ),
                       ),
                       const SizedBox(height: 20),
                       const _ReadySecureNote(),
@@ -138,13 +148,15 @@ class _VideoReadyHeader extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(
-              'Your Video is Ready!',
-              style: GoogleFonts.poppins(
-                color: EditoColors.dark,
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
-                height: 1.1,
+            Flexible(
+              child: Text(
+                'Your Video is Ready!',
+                style: GoogleFonts.poppins(
+                  color: EditoColors.dark,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  height: 1.1,
+                ),
               ),
             ),
             const SizedBox(width: 8),
@@ -561,12 +573,14 @@ class _ReadyInfoCard extends StatelessWidget {
                 size: 15,
               ),
               const SizedBox(width: 5),
-              Text(
-                'June 6, 2026  •  17:50 PM',
-                style: GoogleFonts.inter(
-                  color: EditoColors.body,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
+              Flexible(
+                child: Text(
+                  'June 6, 2026  •  17:50 PM',
+                  style: GoogleFonts.inter(
+                    color: EditoColors.body,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
               const SizedBox(width: 8),

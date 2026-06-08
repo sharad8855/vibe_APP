@@ -153,6 +153,8 @@ class _TemplateDetailHeroState extends State<_TemplateDetailHero> {
     });
   }
 
+
+
   @override
   Widget build(BuildContext context) {
     final topPadding = MediaQuery.paddingOf(context).top;
@@ -266,12 +268,29 @@ class _TemplateDetailHeroState extends State<_TemplateDetailHero> {
                           onTap: () => Navigator.of(context).pop(),
                         ),
                         const Spacer(),
-                        const _HeroCircleButton(
-                          icon: Icons.favorite_border_rounded,
+                        ValueListenableBuilder<List<TemplateData>>(
+                          valueListenable: LikedTemplatesManager.likedTemplatesNotifier,
+                          builder: (context, likedList, _) {
+                            final isLiked = likedList.any((t) => t.title == widget.template.title);
+                            return _HeroCircleButton(
+                              icon: isLiked
+                                  ? Icons.favorite_rounded
+                                  : Icons.favorite_border_rounded,
+                              color: isLiked ? const Color(0xFFFF3B30) : null,
+                              onTap: () {
+                                LikedTemplatesManager.toggleLike(widget.template);
+                              },
+                            );
+                          },
                         ),
                         const SizedBox(width: 12),
-                        const _HeroCircleButton(
+                        _HeroCircleButton(
                           icon: Icons.ios_share_rounded,
+                          onTap: () => showShareSheet(
+                            context,
+                            title: widget.template.title,
+                            template: widget.template,
+                          ),
                         ),
                       ],
                     ),
@@ -592,10 +611,11 @@ class _DetailHeroOverlayPainter extends CustomPainter {
 }
 
 class _HeroCircleButton extends StatelessWidget {
-  const _HeroCircleButton({required this.icon, this.onTap});
+  const _HeroCircleButton({required this.icon, this.onTap, this.color});
 
   final IconData icon;
   final VoidCallback? onTap;
+  final Color? color;
 
   @override
   Widget build(BuildContext context) {
@@ -611,7 +631,7 @@ class _HeroCircleButton extends StatelessWidget {
             color: Colors.white,
             shape: BoxShape.circle,
           ),
-          child: Icon(icon, color: EditoColors.dark, size: 31),
+          child: Icon(icon, color: color ?? EditoColors.dark, size: 31),
         ),
       ),
     );
@@ -995,11 +1015,11 @@ class _DetailCreatorCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildStatItem(Icons.folder_open_outlined, '45 Templates'),
+              Expanded(child: Center(child: _buildStatItem(Icons.folder_open_outlined, '45 Templates'))),
               Container(width: 1, height: 16, color: const Color(0xFFE5E2F5)),
-              _buildStatItem(Icons.people_outline_rounded, '12K Followers'),
+              Expanded(child: Center(child: _buildStatItem(Icons.people_outline_rounded, '12K Followers'))),
               Container(width: 1, height: 16, color: const Color(0xFFE5E2F5)),
-              _buildStatItem(Icons.star_outline_rounded, '4.9 Rating'),
+              Expanded(child: Center(child: _buildStatItem(Icons.star_outline_rounded, '4.9 Rating'))),
             ],
           ),
         ],
@@ -1013,12 +1033,16 @@ class _DetailCreatorCard extends StatelessWidget {
       children: [
         Icon(icon, color: EditoColors.muted, size: 15),
         const SizedBox(width: 6),
-        Text(
-          text,
-          style: GoogleFonts.inter(
-            color: EditoColors.body.withValues(alpha: 0.65),
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
+        Flexible(
+          child: Text(
+            text,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: GoogleFonts.inter(
+              color: EditoColors.body.withValues(alpha: 0.65),
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ),
       ],
@@ -1041,12 +1065,14 @@ class _DetailSectionTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Text(
-          title,
-          style: GoogleFonts.poppins(
-            color: EditoColors.dark,
-            fontSize: 18,
-            fontWeight: FontWeight.w800,
+        Flexible(
+          child: Text(
+            title,
+            style: GoogleFonts.poppins(
+              color: EditoColors.dark,
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+            ),
           ),
         ),
         if (showInfoIcon) ...[

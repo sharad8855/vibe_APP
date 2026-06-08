@@ -475,70 +475,70 @@ class _DefineSlotsScreenState extends State<DefineSlotsScreen> {
                   sliver: SliverList.list(
                     children: [
                       // Header Row
-                      Stack(
-                        alignment: Alignment.center,
+                      Row(
                         children: [
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: _UseHeaderButton(
-                              icon: Icons.chevron_left_rounded,
-                              onTap: () => Navigator.of(context).pop(),
+                          _UseHeaderButton(
+                            icon: Icons.chevron_left_rounded,
+                            onTap: () => Navigator.of(context).pop(),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  'Define Replaceable Slots',
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.poppins(
+                                    color: EditoColors.dark,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w800,
+                                    height: 1.15,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Review and customize slots in your video',
+                                  textAlign: TextAlign.center,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: GoogleFonts.inter(
+                                    color: EditoColors.body.withValues(alpha: 0.74),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                          Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                'Define Replaceable Slots',
-                                style: GoogleFonts.poppins(
-                                  color: EditoColors.dark,
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w800,
-                                  height: 1.15,
-                                ),
+                          const SizedBox(width: 8),
+                          GestureDetector(
+                            onTap: _showPreviewNotification,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: const Color(0xFFDCCCFF)),
+                                color: Colors.white.withValues(alpha: 0.5),
                               ),
-                              const SizedBox(height: 6),
-                              Text(
-                                'Review and customize the slots detected in your video',
-                                textAlign: TextAlign.center,
-                                style: GoogleFonts.inter(
-                                  color: EditoColors.body.withValues(alpha: 0.74),
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: GestureDetector(
-                              onTap: _showPreviewNotification,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(color: const Color(0xFFDCCCFF)),
-                                  color: Colors.white.withValues(alpha: 0.5),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(
-                                      Icons.visibility_outlined,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.visibility_outlined,
+                                    color: EditoColors.primary,
+                                    size: 15,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Preview',
+                                    style: GoogleFonts.inter(
                                       color: EditoColors.primary,
-                                      size: 15,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w800,
                                     ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      'Preview',
-                                      style: GoogleFonts.inter(
-                                        color: EditoColors.primary,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w800,
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                                  ),
+                                ],
                               ),
                             ),
                           ),
@@ -617,28 +617,31 @@ class _DefineSlotsScreenState extends State<DefineSlotsScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Timeline & Slots',
-                      style: GoogleFonts.poppins(
-                        color: EditoColors.dark,
-                        fontSize: 15.5,
-                        fontWeight: FontWeight.w800,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Timeline & Slots',
+                        style: GoogleFonts.poppins(
+                          color: EditoColors.dark,
+                          fontSize: 15.5,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Tap on any slot to edit. Drag edges to adjust timing.',
-                      style: GoogleFonts.inter(
-                        color: EditoColors.body.withValues(alpha: 0.70),
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w600,
+                      const SizedBox(height: 4),
+                      Text(
+                        'Tap on any slot to edit. Drag edges to adjust timing.',
+                        style: GoogleFonts.inter(
+                          color: EditoColors.body.withValues(alpha: 0.70),
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
+                const SizedBox(width: 12),
                 GestureDetector(
                   onTap: () => _showSlotFormDialog(),
                   child: Container(
@@ -676,18 +679,25 @@ class _DefineSlotsScreenState extends State<DefineSlotsScreen> {
             // Ruler & Blocks Layout
             LayoutBuilder(
               builder: (context, constraints) {
-                final double width = constraints.maxWidth;
-                return Column(
-                  children: [
-                    _buildRulerLabels(width),
-                    const SizedBox(height: 6),
-                    CustomPaint(
-                      size: Size(width, 10),
-                      painter: _TimelineRulerPainter(),
+                final double timelineWidth = math.max(680.0, constraints.maxWidth);
+                return SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  child: SizedBox(
+                    width: timelineWidth,
+                    child: Column(
+                      children: [
+                        _buildRulerLabels(timelineWidth),
+                        const SizedBox(height: 6),
+                        CustomPaint(
+                          size: Size(timelineWidth, 10),
+                          painter: _TimelineRulerPainter(),
+                        ),
+                        const SizedBox(height: 8),
+                        _buildInteractiveTimelineBlocks(timelineWidth),
+                      ],
                     ),
-                    const SizedBox(height: 8),
-                    _buildInteractiveTimelineBlocks(width),
-                  ],
+                  ),
                 );
               },
             ),

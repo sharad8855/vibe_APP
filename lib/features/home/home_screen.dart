@@ -82,11 +82,13 @@ class _HomeScreenState extends State<HomeScreen> {
   late int _selectedIndex = widget.initialIndex;
 
   String _selectedCategory = 'All';
+  String _selectedBrowseCategory = 'All';
 
   List<Widget> _buildHomeContent() {
-    final filteredTemplates = _selectedCategory == 'All'
+    final selectedCat = _selectedCategory ?? 'All';
+    final filteredTemplates = selectedCat == 'All'
         ? _templates
-        : _templates.where((t) => t.category.toLowerCase() == _selectedCategory.toLowerCase()).toList();
+        : _templates.where((t) => t.category.toLowerCase() == selectedCat.toLowerCase()).toList();
 
     return [
       const _HomeTopBar(),
@@ -102,7 +104,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       const SizedBox(height: 30),
       _CategoryPills(
-        selectedCategory: _selectedCategory,
+        selectedCategory: selectedCat,
         onSelected: (cat) {
           setState(() {
             _selectedCategory = cat;
@@ -110,7 +112,7 @@ class _HomeScreenState extends State<HomeScreen> {
         },
       ),
       const SizedBox(height: 28),
-      _SectionHeader(title: _selectedCategory == 'All' ? 'Trending Now' : '$_selectedCategory Templates'),
+      _SectionHeader(title: selectedCat == 'All' ? 'Trending Now' : '$selectedCat Templates'),
       const SizedBox(height: 14),
       _TemplateGrid(
         templates: filteredTemplates,
@@ -122,21 +124,33 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   List<Widget> _buildBrowseContent() {
+    final selectedCat = _selectedBrowseCategory ?? 'All';
+    final filteredBrowseTemplates = selectedCat == 'All'
+        ? _templates
+        : _templates.where((t) => t.category.toLowerCase() == selectedCat.toLowerCase()).toList();
+
     return [
       const _BrowseHeader(),
       const SizedBox(height: 27),
       const _BrowseSearchField(),
       const SizedBox(height: 24),
-      const _BrowseCategoryStrip(),
+      _BrowseCategoryStrip(
+        selectedCategory: selectedCat,
+        onSelected: (cat) {
+          setState(() {
+            _selectedBrowseCategory = cat;
+          });
+        },
+      ),
       const SizedBox(height: 32),
       const _SectionHeader(title: 'Featured Collections'),
       const SizedBox(height: 15),
       const _FeaturedCollections(),
       const SizedBox(height: 32),
-      const _SectionHeader(title: 'Trending Templates'),
+      _SectionHeader(title: selectedCat == 'All' ? 'Trending Templates' : '$selectedCat Templates'),
       const SizedBox(height: 15),
       _TemplateGrid(
-        templates: _templates,
+        templates: filteredBrowseTemplates,
         showDuration: true,
         showByCreator: true,
         aspectRatio: 0.68,

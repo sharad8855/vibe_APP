@@ -7,14 +7,34 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStateMixin {
   final _phoneController = TextEditingController();
   String? _errorMessage;
+  late AnimationController _fadeController;
+  late Animation<double> _fadeAnimation;
+  late Animation<double> _slideAnimation;
 
   @override
   void initState() {
     super.initState();
     _phoneController.addListener(_onPhoneChanged);
+    _fadeController = AnimationController(
+      duration: const Duration(milliseconds: 1000),
+      vsync: this,
+    );
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _fadeController,
+        curve: const Interval(0.1, 1.0, curve: Curves.easeOut),
+      ),
+    );
+    _slideAnimation = Tween<double>(begin: 24.0, end: 0.0).animate(
+      CurvedAnimation(
+        parent: _fadeController,
+        curve: const Interval(0.1, 1.0, curve: Curves.easeOutCubic),
+      ),
+    );
+    _fadeController.forward();
   }
 
   void _onPhoneChanged() {
@@ -29,13 +49,14 @@ class _LoginScreenState extends State<LoginScreen> {
   void dispose() {
     _phoneController.removeListener(_onPhoneChanged);
     _phoneController.dispose();
+    _fadeController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
-    final isCompact = size.height < 760;
+    final isCompact = size.height < 850;
 
     return Scaffold(
       body: Stack(
@@ -43,7 +64,7 @@ class _LoginScreenState extends State<LoginScreen> {
           const Positioned.fill(child: _SoftBackground()),
           SafeArea(
             child: SingleChildScrollView(
-              physics: const NeverScrollableScrollPhysics(),
+              physics: const BouncingScrollPhysics(),
               child: ConstrainedBox(
                 constraints: BoxConstraints(
                   minHeight:
@@ -51,22 +72,33 @@ class _LoginScreenState extends State<LoginScreen> {
                       MediaQuery.paddingOf(context).top -
                       MediaQuery.paddingOf(context).bottom,
                 ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 30),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      SizedBox(height: isCompact ? 26 : 58),
-                      const _LogoHeader(),
-                      SizedBox(height: isCompact ? 28 : 52),
-                      const _HeroIllustration(),
-                      SizedBox(height: isCompact ? 30 : 58),
+                child: AnimatedBuilder(
+                  animation: _fadeController,
+                  builder: (context, child) {
+                    return Opacity(
+                      opacity: _fadeAnimation.value,
+                      child: Transform.translate(
+                        offset: Offset(0, _slideAnimation.value),
+                        child: child,
+                      ),
+                    );
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 30),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                      SizedBox(height: isCompact ? 16 : 58),
+                      _LogoHeader(isCompact: isCompact),
+                      SizedBox(height: isCompact ? 18 : 52),
+                      _HeroIllustration(height: isCompact ? 150 : 250),
+                      SizedBox(height: isCompact ? 20 : 58),
                       Text(
                         'Welcome back!',
                         textAlign: TextAlign.center,
                         style: GoogleFonts.poppins(
                           color: EditoColors.dark,
-                          fontSize: 31,
+                          fontSize: isCompact ? 25 : 31,
                           fontWeight: FontWeight.w800,
                           height: 1.1,
                         ),
@@ -77,11 +109,11 @@ class _LoginScreenState extends State<LoginScreen> {
                         textAlign: TextAlign.center,
                         style: GoogleFonts.inter(
                           color: EditoColors.body.withValues(alpha: 0.74),
-                          fontSize: 18,
+                          fontSize: isCompact ? 15 : 18,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                      SizedBox(height: isCompact ? 30 : 54),
+                      SizedBox(height: isCompact ? 20 : 54),
                       Text(
                         'Mobile Number',
                         style: GoogleFonts.poppins(
@@ -94,6 +126,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       _PhoneNumberField(
                         controller: _phoneController,
                         hasError: _errorMessage != null,
+                        height: isCompact ? 58 : 66,
                       ),
                       if (_errorMessage != null) ...[
                         const SizedBox(height: 8),
@@ -107,12 +140,14 @@ class _LoginScreenState extends State<LoginScreen> {
                                 size: 16,
                               ),
                               const SizedBox(width: 6),
-                              Text(
-                                _errorMessage!,
-                                style: GoogleFonts.inter(
-                                  color: const Color(0xFFFF3356),
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
+                              Expanded(
+                                child: Text(
+                                  _errorMessage!,
+                                  style: GoogleFonts.inter(
+                                    color: const Color(0xFFFF3356),
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                               ),
                             ],
@@ -122,6 +157,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       const SizedBox(height: 30),
                       _ContinueButton(
                         label: 'Continue',
+                        height: isCompact ? 58 : 66,
                         onTap: () {
                           final phone = _phoneController.text.trim();
                           if (phone.isEmpty) {
@@ -144,21 +180,21 @@ class _LoginScreenState extends State<LoginScreen> {
                           }
                         },
                       ),
-                      SizedBox(height: isCompact ? 26 : 38),
+                      SizedBox(height: isCompact ? 20 : 38),
                       const _DividerWithText(),
                       const SizedBox(height: 28),
-                      const _GoogleButton(),
+                      _GoogleButton(size: isCompact ? 66 : 82),
                       const SizedBox(height: 16),
                       Text(
                         'Continue with Google',
                         textAlign: TextAlign.center,
                         style: GoogleFonts.inter(
                           color: EditoColors.body.withValues(alpha: 0.76),
-                          fontSize: 17,
+                          fontSize: isCompact ? 15 : 17,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                      SizedBox(height: isCompact ? 52 : 88),
+                      SizedBox(height: isCompact ? 36 : 88),
                       const _PrivacyNote(),
                       const SizedBox(height: 28),
                     ],
@@ -167,17 +203,25 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
           ),
-        ],
-      ),
-    );
+        ),
+      ],
+    ),
+  );
   }
 }
 
 class _LogoHeader extends StatelessWidget {
-  const _LogoHeader();
+  const _LogoHeader({this.isCompact = false});
+
+  final bool isCompact;
 
   @override
   Widget build(BuildContext context) {
+    final double fontSize = isCompact ? 46.0 : 62.0;
+    final dotOffset = isCompact ? const Offset(38, -40) : const Offset(51, -54);
+    final textOffset = isCompact ? const Offset(0, -15) : const Offset(0, -20);
+    final double textFontSize = isCompact ? 14.0 : 18.0;
+
     return Column(
       children: [
         RichText(
@@ -187,7 +231,7 @@ class _LogoHeader extends StatelessWidget {
                 text: 'E',
                 style: GoogleFonts.poppins(
                   color: EditoColors.primary,
-                  fontSize: 62,
+                  fontSize: fontSize,
                   fontWeight: FontWeight.w900,
                   height: 1,
                 ),
@@ -196,7 +240,7 @@ class _LogoHeader extends StatelessWidget {
                 text: 'dito',
                 style: GoogleFonts.poppins(
                   color: EditoColors.dark,
-                  fontSize: 62,
+                  fontSize: fontSize,
                   fontWeight: FontWeight.w900,
                   height: 1,
                 ),
@@ -205,19 +249,19 @@ class _LogoHeader extends StatelessWidget {
           ),
         ),
         Transform.translate(
-          offset: const Offset(51, -54),
+          offset: dotOffset,
           child: const CircleAvatar(
             radius: 6,
             backgroundColor: EditoColors.accent,
           ),
         ),
         Transform.translate(
-          offset: const Offset(0, -20),
+          offset: textOffset,
           child: Text(
             'Video Template Platform',
             style: GoogleFonts.inter(
               color: EditoColors.body.withValues(alpha: 0.78),
-              fontSize: 18,
+              fontSize: textFontSize,
               fontWeight: FontWeight.w700,
               letterSpacing: 0,
             ),
@@ -229,12 +273,14 @@ class _LogoHeader extends StatelessWidget {
 }
 
 class _HeroIllustration extends StatelessWidget {
-  const _HeroIllustration();
+  const _HeroIllustration({this.height = 250.0});
+
+  final double height;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 250,
+      height: height,
       child: CustomPaint(
         painter: _IllustrationPainter(),
         child: const SizedBox.expand(),
@@ -246,13 +292,19 @@ class _HeroIllustration extends StatelessWidget {
 class _IllustrationPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
+    final double baseHeight = 250.0;
+    final double scale = size.height / baseHeight;
+    final double baseWidth = size.width / scale;
+    canvas.save();
+    canvas.scale(scale);
+
+    final center = Offset(baseWidth / 2, baseHeight / 2);
     final shadow = Paint()
       ..color = const Color(0x1F6C63FF)
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 24);
     canvas.drawOval(
       Rect.fromCenter(
-        center: Offset(center.dx, size.height * 0.86),
+        center: Offset(center.dx, baseHeight * 0.86),
         width: 190,
         height: 28,
       ),
@@ -285,7 +337,7 @@ class _IllustrationPainter extends CustomPainter {
 
     final notch = RRect.fromRectAndRadius(
       Rect.fromCenter(
-        center: Offset(center.dx, size.height * 0.18),
+        center: Offset(center.dx, baseHeight * 0.18),
         width: 40,
         height: 5,
       ),
@@ -293,18 +345,18 @@ class _IllustrationPainter extends CustomPainter {
     );
     canvas.drawRRect(notch, Paint()..color = const Color(0xFFD9D0FF));
     canvas.drawCircle(
-      Offset(center.dx, size.height * 0.38),
+      Offset(center.dx, baseHeight * 0.38),
       30,
       Paint()..color = const Color(0xFF7F6EFF),
     );
     canvas.drawCircle(
-      Offset(center.dx, size.height * 0.34),
+      Offset(center.dx, baseHeight * 0.34),
       11,
       Paint()..color = const Color(0xFFFFFFFF),
     );
     canvas.drawOval(
       Rect.fromCenter(
-        center: Offset(center.dx, size.height * 0.45),
+        center: Offset(center.dx, baseHeight * 0.45),
         width: 42,
         height: 28,
       ),
@@ -315,7 +367,7 @@ class _IllustrationPainter extends CustomPainter {
         RRect.fromRectAndRadius(
           Rect.fromLTWH(
             center.dx - 48,
-            size.height * (0.53 + i * 0.13),
+            baseHeight * (0.53 + i * 0.13),
             92,
             30,
           ),
@@ -324,7 +376,7 @@ class _IllustrationPainter extends CustomPainter {
         Paint()..color = const Color(0xFFFFFFFF),
       );
       canvas.drawCircle(
-        Offset(center.dx - 39, size.height * (0.59 + i * 0.13)),
+        Offset(center.dx - 39, baseHeight * (0.59 + i * 0.13)),
         4,
         Paint()..color = const Color(0xFFD8CEFF),
       );
@@ -332,7 +384,7 @@ class _IllustrationPainter extends CustomPainter {
     canvas.drawRRect(
       RRect.fromRectAndRadius(
         Rect.fromCenter(
-          center: Offset(center.dx, size.height * 0.78),
+          center: Offset(center.dx, baseHeight * 0.78),
           width: 42,
           height: 5,
         ),
@@ -343,7 +395,7 @@ class _IllustrationPainter extends CustomPainter {
     canvas.restore();
 
     final bubble = RRect.fromRectAndRadius(
-      Rect.fromLTWH(size.width * 0.18, size.height * 0.28, 67, 57),
+      Rect.fromLTWH(baseWidth * 0.18, baseHeight * 0.28, 67, 57),
       const Radius.circular(12),
     );
     canvas.drawRRect(
@@ -354,15 +406,15 @@ class _IllustrationPainter extends CustomPainter {
         ).createShader(bubble.outerRect),
     );
     final tail = Path()
-      ..moveTo(size.width * 0.34, size.height * 0.49)
-      ..lineTo(size.width * 0.31, size.height * 0.41)
-      ..lineTo(size.width * 0.39, size.height * 0.41)
+      ..moveTo(baseWidth * 0.34, baseHeight * 0.49)
+      ..lineTo(baseWidth * 0.31, baseHeight * 0.41)
+      ..lineTo(baseWidth * 0.39, baseHeight * 0.41)
       ..close();
     canvas.drawPath(tail, Paint()..color = const Color(0xFF7A68FF));
-    _drawLock(canvas, Offset(size.width * 0.27, size.height * 0.39));
+    _drawLock(canvas, Offset(baseWidth * 0.27, baseHeight * 0.39));
 
     final playRect = RRect.fromRectAndRadius(
-      Rect.fromLTWH(size.width * 0.65, size.height * 0.56, 86, 69),
+      Rect.fromLTWH(baseWidth * 0.65, baseHeight * 0.56, 86, 69),
       const Radius.circular(12),
     );
     canvas.drawRRect(
@@ -373,25 +425,27 @@ class _IllustrationPainter extends CustomPainter {
         ).createShader(playRect.outerRect),
     );
     final play = Path()
-      ..moveTo(size.width * 0.73, size.height * 0.64)
-      ..lineTo(size.width * 0.73, size.height * 0.76)
-      ..lineTo(size.width * 0.82, size.height * 0.70)
+      ..moveTo(baseWidth * 0.73, baseHeight * 0.64)
+      ..lineTo(baseWidth * 0.73, baseHeight * 0.76)
+      ..lineTo(baseWidth * 0.82, baseHeight * 0.70)
       ..close();
     canvas.drawPath(play, Paint()..color = Colors.white);
 
-    _drawLeaf(canvas, Offset(size.width * 0.29, size.height * 0.76), -0.55);
-    _drawLeaf(canvas, Offset(size.width * 0.34, size.height * 0.83), -0.9);
+    _drawLeaf(canvas, Offset(baseWidth * 0.29, baseHeight * 0.76), -0.55);
+    _drawLeaf(canvas, Offset(baseWidth * 0.34, baseHeight * 0.83), -0.9);
 
     final dotPaint = Paint()..color = const Color(0xFFE6E0FF);
     for (final dot in [
-      Offset(size.width * 0.67, size.height * 0.43),
-      Offset(size.width * 0.75, size.height * 0.37),
-      Offset(size.width * 0.76, size.height * 0.47),
-      Offset(size.width * 0.23, size.height * 0.56),
-      Offset(size.width * 0.39, size.height * 0.64),
+      Offset(baseWidth * 0.67, baseHeight * 0.43),
+      Offset(baseWidth * 0.75, baseHeight * 0.37),
+      Offset(baseWidth * 0.76, baseHeight * 0.47),
+      Offset(baseWidth * 0.23, baseHeight * 0.56),
+      Offset(baseWidth * 0.39, baseHeight * 0.64),
     ]) {
       canvas.drawCircle(dot, 5, dotPaint);
     }
+
+    canvas.restore();
   }
 
   void _drawLock(Canvas canvas, Offset center) {
@@ -437,15 +491,17 @@ class _PhoneNumberField extends StatelessWidget {
   const _PhoneNumberField({
     required this.controller,
     this.hasError = false,
+    this.height = 66,
   });
 
   final TextEditingController controller;
   final bool hasError;
+  final double height;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 66,
+      height: height,
       decoration: BoxDecoration(
         color: EditoColors.white,
         borderRadius: BorderRadius.circular(17),
@@ -580,14 +636,16 @@ class _DividerWithText extends StatelessWidget {
 }
 
 class _GoogleButton extends StatelessWidget {
-  const _GoogleButton();
+  const _GoogleButton({this.size = 82});
+
+  final double size;
 
   @override
   Widget build(BuildContext context) {
     return Center(
       child: Container(
-        width: 82,
-        height: 82,
+        width: size,
+        height: size,
         decoration: const BoxDecoration(
           color: EditoColors.white,
           shape: BoxShape.circle,
@@ -604,7 +662,7 @@ class _GoogleButton extends StatelessWidget {
             'G',
             style: GoogleFonts.poppins(
               color: const Color(0xFF4285F4),
-              fontSize: 34,
+              fontSize: size * 0.41,
               fontWeight: FontWeight.w800,
             ),
           ),

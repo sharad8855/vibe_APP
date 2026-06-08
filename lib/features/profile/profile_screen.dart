@@ -32,33 +32,61 @@ class ProfileScreen extends StatelessWidget {
                 );
               },
             ),
-            const _ProfileMenuData(
+            _ProfileMenuData(
               icon: Icons.folder_rounded,
               title: 'My Templates',
               subtitle: 'View and manage your published templates',
               color: EditoColors.primary,
-              tint: Color(0xFFDCD3FF),
+              tint: const Color(0xFFDCD3FF),
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const MyTemplatesScreen(),
+                  ),
+                );
+              },
             ),
-            const _ProfileMenuData(
+            _ProfileMenuData(
               icon: Icons.bar_chart_rounded,
               title: 'Earnings',
               subtitle: 'Track your earnings and withdrawals',
-              color: Color(0xFF22B37D),
-              tint: Color(0xFFA9EBCF),
+              color: const Color(0xFF22B37D),
+              tint: const Color(0xFFA9EBCF),
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const EarningsScreen(),
+                  ),
+                );
+              },
             ),
-            const _ProfileMenuData(
-              icon: Icons.shopping_bag_outlined,
-              title: 'Purchases',
-              subtitle: 'View your purchased templates',
-              color: EditoColors.accent,
-              tint: Color(0xFFFFD8E1),
-            ),
-            const _ProfileMenuData(
+            _ProfileMenuData(
               icon: Icons.bookmark_rounded,
               title: 'Saved Templates',
               subtitle: 'Templates you saved for later',
-              color: Color(0xFF2015F0),
-              tint: Color(0xFFD8E0FF),
+              color: const Color(0xFF2015F0),
+              tint: const Color(0xFFD8E0FF),
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const SavedTemplatesScreen(),
+                  ),
+                );
+              },
+            ),
+            _ProfileMenuData(
+              icon: Icons.favorite_rounded,
+              title: 'Liked Templates',
+              subtitle: 'Templates you have liked',
+              color: const Color(0xFFFF3B30),
+              tint: const Color(0xFFFFD5D3),
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const LikedTemplatesScreen(),
+                  ),
+                );
+              },
             ),
           ],
         ),
@@ -67,26 +95,47 @@ class ProfileScreen extends StatelessWidget {
         const SizedBox(height: 10),
         _ProfileMenuGroup(
           items: [
-            const _ProfileMenuData(
+            _ProfileMenuData(
               icon: Icons.person_outline_rounded,
               title: 'Account Settings',
               subtitle: 'Manage your personal information',
-              color: Color(0xFF2015F0),
-              tint: Color(0xFFD9E1FF),
+              color: const Color(0xFF2015F0),
+              tint: const Color(0xFFD9E1FF),
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const AccountSettingsScreen(),
+                  ),
+                );
+              },
             ),
-            const _ProfileMenuData(
+            _ProfileMenuData(
               icon: Icons.shield_rounded,
               title: 'Privacy & Security',
               subtitle: 'Manage your privacy and security',
               color: EditoColors.primary,
-              tint: Color(0xFFE1D4FF),
+              tint: const Color(0xFFE1D4FF),
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const PrivacySecurityScreen(),
+                  ),
+                );
+              },
             ),
-            const _ProfileMenuData(
+            _ProfileMenuData(
               icon: Icons.question_mark_rounded,
               title: 'Help & Support',
               subtitle: 'Get help and contact support',
-              color: Color(0xFFF7AE14),
-              tint: Color(0xFFFFE6A6),
+              color: const Color(0xFFF7AE14),
+              tint: const Color(0xFFFFE6A6),
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const HelpSupportScreen(),
+                  ),
+                );
+              },
             ),
             _ProfileMenuData(
               icon: Icons.logout_rounded,
@@ -441,35 +490,44 @@ class _EditProfileButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 38,
-      padding: const EdgeInsets.symmetric(horizontal: 13),
-      decoration: BoxDecoration(
-        color: EditoColors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: EditoColors.border),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x08000000),
-            offset: Offset(0, 5),
-            blurRadius: 14,
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => const AccountSettingsScreen(),
           ),
-        ],
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.edit_outlined, color: EditoColors.primary, size: 16),
-          const SizedBox(width: 6),
-          Text(
-            'Edit Profile',
-            style: GoogleFonts.poppins(
-              color: EditoColors.dark,
-              fontSize: 12,
-              fontWeight: FontWeight.w800,
+        );
+      },
+      child: Container(
+        height: 38,
+        padding: const EdgeInsets.symmetric(horizontal: 13),
+        decoration: BoxDecoration(
+          color: EditoColors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: EditoColors.border),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x08000000),
+              offset: Offset(0, 5),
+              blurRadius: 14,
             ),
-          ),
-        ],
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.edit_outlined, color: EditoColors.primary, size: 16),
+            const SizedBox(width: 6),
+            Text(
+              'Edit Profile',
+              style: GoogleFonts.poppins(
+                color: EditoColors.dark,
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -549,103 +607,119 @@ class _ProfileProBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(14),
-        gradient: const LinearGradient(
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-          colors: [Color(0xFF060944), Color(0xFF10115C)],
-        ),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x2B060944),
-            offset: Offset(0, 12),
-            blurRadius: 28,
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          // Crown icon
-          Container(
-            width: 56,
-            height: 56,
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
+    return ValueListenableBuilder<bool>(
+      valueListenable: ProSubscriptionManager.isProNotifier,
+      builder: (context, isPro, _) {
+        return GestureDetector(
+          onTap: () {
+            ProSubscriptionSheet.show(context);
+          },
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(14),
               gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Color(0xFF5B3DDB), Color(0xFF8D39FF)],
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+                colors: isPro
+                    ? [const Color(0xFF1B003A), const Color(0xFF3B007A)]
+                    : [const Color(0xFF060944), const Color(0xFF10115C)],
               ),
-            ),
-            child: const Icon(
-              Icons.workspace_premium_rounded,
-              color: Colors.white,
-              size: 28,
-            ),
-          ),
-          const SizedBox(width: 14),
-          // Text column
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Edito Pro',
-                  style: GoogleFonts.poppins(
-                    color: Colors.white,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Unlock premium templates, exclusive assets and more.',
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.inter(
-                    color: Colors.white.withValues(alpha: 0.85),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    height: 1.4,
-                  ),
+              boxShadow: [
+                BoxShadow(
+                  color: isPro ? const Color(0x2B3B007A) : const Color(0x2B060944),
+                  offset: const Offset(0, 12),
+                  blurRadius: 28,
                 ),
               ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          // Upgrade button — intrinsic width, no fixed pixel
-          Container(
-            height: 44,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            decoration: BoxDecoration(
-              color: EditoColors.primary,
-              borderRadius: BorderRadius.circular(22),
             ),
             child: Row(
-              mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  'Upgrade Now',
-                  style: GoogleFonts.poppins(
+                // Crown icon
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: isPro
+                          ? [const Color(0xFFFFB300), const Color(0xFFFF8F00)]
+                          : [const Color(0xFF5B3DDB), const Color(0xFF8D39FF)],
+                    ),
+                  ),
+                  child: Icon(
+                    isPro ? Icons.star_rounded : Icons.workspace_premium_rounded,
                     color: Colors.white,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
+                    size: 28,
                   ),
                 ),
-                const SizedBox(width: 6),
-                const Icon(
-                  Icons.chevron_right_rounded,
-                  color: Colors.white,
-                  size: 20,
+                const SizedBox(width: 14),
+                // Text column
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        isPro ? 'Edito Pro Active' : 'Edito Pro',
+                        style: GoogleFonts.poppins(
+                          color: Colors.white,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        isPro
+                            ? 'You are enjoying unlimited generations & 4K quality downloads!'
+                            : 'Unlock premium templates, exclusive assets and more.',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.inter(
+                          color: Colors.white.withValues(alpha: 0.85),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // Upgrade button
+                Container(
+                  height: 44,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: isPro ? const Color(0xFF1BB676) : EditoColors.primary,
+                    borderRadius: BorderRadius.circular(22),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        isPro ? 'Active' : 'Upgrade Now',
+                        style: GoogleFonts.poppins(
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Icon(
+                        isPro ? Icons.check_circle_outline_rounded : Icons.chevron_right_rounded,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

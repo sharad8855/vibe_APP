@@ -1,7 +1,144 @@
 part of '../../main.dart';
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  bool _notificationsEnabled = true;
+  bool _autoplayEnabled = true;
+  bool _dataSaverEnabled = false;
+  String _downloadQuality = '1080p';
+  String _cacheSize = '256 MB';
+
+  void _showQualitySelector() {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(24),
+              topRight: Radius.circular(24),
+            ),
+          ),
+          padding: EdgeInsets.fromLTRB(20, 16, 20, MediaQuery.of(sheetContext).padding.bottom + 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 48,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE5E6F2),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Select Download Quality',
+                style: GoogleFonts.poppins(
+                  color: EditoColors.dark,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 16),
+              _buildQualityOption('1080p', 'Full HD resolution - standard size'),
+              const SizedBox(height: 8),
+              _buildQualityOption('2K', 'Quad HD resolution - higher clarity'),
+              const SizedBox(height: 8),
+              _buildQualityOption('4K', 'Ultra HD resolution - maximum detail (Pro)'),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildQualityOption(String quality, String desc) {
+    final bool isSelected = _downloadQuality == quality;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _downloadQuality = quality;
+        });
+        Navigator.of(context).pop();
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFFF1ECFF) : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? EditoColors.primary : const Color(0xFFE5E6F2),
+          ),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    quality,
+                    style: GoogleFonts.poppins(
+                      color: EditoColors.dark,
+                      fontSize: 15.5,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  Text(
+                    desc,
+                    style: GoogleFonts.inter(
+                      color: EditoColors.body.withValues(alpha: 0.72),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (isSelected)
+              const Icon(Icons.check_circle_rounded, color: EditoColors.primary, size: 22),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _clearCache() {
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return _ClearCacheProgressDialog(
+          onCompleted: () {
+            setState(() {
+              _cacheSize = '0 MB';
+            });
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'Cache cleared successfully!',
+                  style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+                ),
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -17,54 +154,68 @@ class SettingsScreen extends StatelessWidget {
                 SliverPadding(
                   padding: const EdgeInsets.fromLTRB(17, 18, 17, 145),
                   sliver: SliverList.list(
-                    children: const [
-                      _SettingsHeader(),
-                      SizedBox(height: 22),
-                      _SettingsSectionTitle('Account'),
-                      SizedBox(height: 12),
+                    children: [
+                      const _SettingsHeader(),
+                      const SizedBox(height: 22),
+                      const _SettingsSectionTitle('Account'),
+                      const SizedBox(height: 12),
                       _SettingsGroup(
                         items: [
                           _SettingsItemData(
                             icon: Icons.person_outline_rounded,
                             title: 'Edit Profile',
                             subtitle: 'Update your name, photo and bio',
+                            onTap: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute<void>(
+                                  builder: (_) => const AccountSettingsScreen(),
+                                ),
+                              );
+                            },
                           ),
-                          _SettingsItemData(
+                          const _SettingsItemData(
                             icon: Icons.email_outlined,
                             title: 'Email',
                             subtitle: 'rohitcreative@gmail.com',
                           ),
-                          _SettingsItemData(
+                          const _SettingsItemData(
                             icon: Icons.lock_outline_rounded,
                             title: 'Password',
                             subtitle: 'Change your password',
                           ),
-                          _SettingsItemData(
+                          const _SettingsItemData(
                             icon: Icons.phone_outlined,
                             title: 'Phone Number',
                             subtitle: '+91 98765 43210',
                           ),
                         ],
                       ),
-                      SizedBox(height: 25),
-                      _SettingsSectionTitle('Preferences'),
-                      SizedBox(height: 12),
+                      const SizedBox(height: 25),
+                      const _SettingsSectionTitle('Preferences'),
+                      const SizedBox(height: 12),
                       _SettingsGroup(
                         items: [
                           _SettingsItemData(
                             icon: Icons.notifications_none_rounded,
                             title: 'Notifications',
                             subtitle: 'Manage push and in-app notifications',
-                            trailing: _SettingsTrailing.toggleOn,
+                            trailing: _notificationsEnabled
+                                ? _SettingsTrailing.toggleOn
+                                : _SettingsTrailing.toggleOff,
+                            onTap: () {
+                              setState(() {
+                                _notificationsEnabled = !_notificationsEnabled;
+                              });
+                            },
                           ),
-                          _SettingsItemData(
+                          const _SettingsItemData(
                             icon: Icons.palette_outlined,
                             title: 'Appearance',
                             subtitle: 'Choose your app theme',
                             value: 'System',
                             trailing: _SettingsTrailing.valueDropdown,
                           ),
-                          _SettingsItemData(
+                          const _SettingsItemData(
                             icon: Icons.language_rounded,
                             title: 'Language',
                             subtitle: 'Select your preferred language',
@@ -75,27 +226,42 @@ class SettingsScreen extends StatelessWidget {
                             icon: Icons.file_download_outlined,
                             title: 'Download Quality',
                             subtitle: 'Choose video quality for downloads',
-                            value: '1080p',
+                            value: _downloadQuality,
                             trailing: _SettingsTrailing.valueDropdown,
+                            onTap: _showQualitySelector,
                           ),
                           _SettingsItemData(
                             icon: Icons.smart_display_outlined,
                             title: 'Auto Play',
                             subtitle: 'Auto play videos in browse',
-                            trailing: _SettingsTrailing.toggleOn,
+                            trailing: _autoplayEnabled
+                                ? _SettingsTrailing.toggleOn
+                                : _SettingsTrailing.toggleOff,
+                            onTap: () {
+                              setState(() {
+                                _autoplayEnabled = !_autoplayEnabled;
+                              });
+                            },
                           ),
                           _SettingsItemData(
                             icon: Icons.settings_input_antenna_rounded,
                             title: 'Data Saver',
                             subtitle: 'Reduce data usage on mobile network',
-                            trailing: _SettingsTrailing.toggleOff,
+                            trailing: _dataSaverEnabled
+                                ? _SettingsTrailing.toggleOn
+                                : _SettingsTrailing.toggleOff,
+                            onTap: () {
+                              setState(() {
+                                _dataSaverEnabled = !_dataSaverEnabled;
+                              });
+                            },
                           ),
                         ],
                       ),
-                      SizedBox(height: 25),
-                      _SettingsSectionTitle('Creator & Content'),
-                      SizedBox(height: 12),
-                      _SettingsGroup(
+                      const SizedBox(height: 25),
+                      const _SettingsSectionTitle('Creator & Content'),
+                      const SizedBox(height: 12),
+                      const _SettingsGroup(
                         items: [
                           _SettingsItemData(
                             icon: Icons.library_books_outlined,
@@ -116,19 +282,20 @@ class SettingsScreen extends StatelessWidget {
                           ),
                         ],
                       ),
-                      SizedBox(height: 25),
-                      _SettingsSectionTitle('Storage & Cache'),
-                      SizedBox(height: 12),
+                      const SizedBox(height: 25),
+                      const _SettingsSectionTitle('Storage & Cache'),
+                      const SizedBox(height: 12),
                       _SettingsGroup(
                         items: [
                           _SettingsItemData(
                             icon: Icons.delete_outline_rounded,
                             title: 'Clear Cache',
                             subtitle: 'Free up storage space',
-                            value: '256 MB',
+                            value: _cacheSize,
                             trailing: _SettingsTrailing.valueChevron,
+                            onTap: _clearCache,
                           ),
-                          _SettingsItemData(
+                          const _SettingsItemData(
                             icon: Icons.folder_open_rounded,
                             title: 'Manage Downloads',
                             subtitle: 'View and manage downloaded files',
@@ -137,17 +304,24 @@ class SettingsScreen extends StatelessWidget {
                           ),
                         ],
                       ),
-                      SizedBox(height: 25),
-                      _SettingsSectionTitle('Support & About'),
-                      SizedBox(height: 12),
+                      const SizedBox(height: 25),
+                      const _SettingsSectionTitle('Support & About'),
+                      const SizedBox(height: 12),
                       _SettingsGroup(
                         items: [
                           _SettingsItemData(
                             icon: Icons.help_outline_rounded,
                             title: 'Help & Support',
                             subtitle: 'Get help and contact support',
+                            onTap: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute<void>(
+                                  builder: (_) => const HelpSupportScreen(),
+                                ),
+                              );
+                            },
                           ),
-                          _SettingsItemData(
+                          const _SettingsItemData(
                             icon: Icons.info_outline_rounded,
                             title: 'About Edito',
                             subtitle: 'App version, terms and policies',
@@ -156,8 +330,8 @@ class SettingsScreen extends StatelessWidget {
                           ),
                         ],
                       ),
-                      SizedBox(height: 13),
-                      _SettingsLogoutRow(),
+                      const SizedBox(height: 13),
+                      const _SettingsLogoutRow(),
                     ],
                   ),
                 ),
@@ -299,55 +473,61 @@ class _SettingsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 14),
-      child: Row(
-        children: [
-          const SizedBox(width: 18),
-          Container(
-            width: 47,
-            height: 47,
-            decoration: BoxDecoration(
-              color: const Color(0xFFE9DFFF),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(data.icon, color: EditoColors.primary, size: 27),
-          ),
-          const SizedBox(width: 17),
-          Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  data.title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.poppins(
-                    color: EditoColors.dark,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                  ),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: data.onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          child: Row(
+            children: [
+              const SizedBox(width: 18),
+              Container(
+                width: 47,
+                height: 47,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE9DFFF),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                const SizedBox(height: 5),
-                Text(
-                  data.subtitle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.inter(
-                    color: EditoColors.body.withValues(alpha: 0.78),
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                  ),
+                child: Icon(data.icon, color: EditoColors.primary, size: 27),
+              ),
+              const SizedBox(width: 17),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      data.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.poppins(
+                        color: EditoColors.dark,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      data.subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.inter(
+                        color: EditoColors.body.withValues(alpha: 0.78),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(width: 10),
+              _SettingsTrailingWidget(data: data),
+              const SizedBox(width: 18),
+            ],
           ),
-          const SizedBox(width: 10),
-          _SettingsTrailingWidget(data: data),
-          const SizedBox(width: 18),
-        ],
+        ),
       ),
     );
   }
@@ -364,19 +544,19 @@ class _SettingsTrailingWidget extends StatelessWidget {
       _SettingsTrailing.toggleOn => const _SettingsSwitch(isOn: true),
       _SettingsTrailing.toggleOff => const _SettingsSwitch(isOn: false),
       _SettingsTrailing.valueDropdown => _SettingsValue(
-        value: data.value,
-        showDropdown: true,
-      ),
+          value: data.value,
+          showDropdown: true,
+        ),
       _SettingsTrailing.valueChevron => _SettingsValue(
-        value: data.value,
-        showChevron: true,
-        highlighted: true,
-      ),
+          value: data.value,
+          showChevron: true,
+          highlighted: true,
+        ),
       _SettingsTrailing.chevron => Icon(
-        Icons.chevron_right_rounded,
-        color: EditoColors.body.withValues(alpha: 0.70),
-        size: 27,
-      ),
+          Icons.chevron_right_rounded,
+          color: EditoColors.body.withValues(alpha: 0.70),
+          size: 27,
+        ),
     };
   }
 }
@@ -554,6 +734,7 @@ class _SettingsItemData {
     required this.subtitle,
     this.value = '',
     this.trailing = _SettingsTrailing.chevron,
+    this.onTap,
   });
 
   final IconData icon;
@@ -561,4 +742,77 @@ class _SettingsItemData {
   final String subtitle;
   final String value;
   final _SettingsTrailing trailing;
+  final VoidCallback? onTap;
+}
+
+class _ClearCacheProgressDialog extends StatefulWidget {
+  const _ClearCacheProgressDialog({required this.onCompleted});
+
+  final VoidCallback onCompleted;
+
+  @override
+  State<_ClearCacheProgressDialog> createState() => _ClearCacheProgressDialogState();
+}
+
+class _ClearCacheProgressDialogState extends State<_ClearCacheProgressDialog> {
+  double _progress = 0.0;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(milliseconds: 30), (timer) {
+      if (!mounted) return;
+      setState(() {
+        _progress += 0.04;
+        if (_progress >= 1.0) {
+          _progress = 1.0;
+          _timer?.cancel();
+          Navigator.of(context).pop(); // Close dialog
+          widget.onCompleted();
+        }
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      title: Text(
+        'Clearing Cache',
+        style: GoogleFonts.poppins(
+          color: EditoColors.dark,
+          fontWeight: FontWeight.w800,
+          fontSize: 18,
+        ),
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          LinearProgressIndicator(
+            value: _progress,
+            color: EditoColors.primary,
+            backgroundColor: const Color(0xFFF1F3FA),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            'Removing temporary files to free up space...',
+            style: GoogleFonts.inter(
+              color: EditoColors.body,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

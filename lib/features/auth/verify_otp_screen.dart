@@ -38,7 +38,7 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
-    final isCompact = size.height < 760;
+    final isCompact = size.height < 850;
 
     return Scaffold(
       body: Stack(
@@ -46,7 +46,7 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
           const Positioned.fill(child: _SoftBackground()),
           SafeArea(
             child: SingleChildScrollView(
-              physics: const NeverScrollableScrollPhysics(),
+              physics: const BouncingScrollPhysics(),
               child: ConstrainedBox(
                 constraints: BoxConstraints(
                   minHeight:
@@ -59,13 +59,13 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      SizedBox(height: isCompact ? 18 : 52),
+                      SizedBox(height: isCompact ? 14 : 52),
                       Align(
                         alignment: Alignment.centerLeft,
                         child: IconButton(
                           onPressed: () => Navigator.of(context).pop(),
                           icon: const Icon(Icons.arrow_back_rounded),
-                          iconSize: 37,
+                          iconSize: isCompact ? 30 : 37,
                           color: EditoColors.dark,
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(
@@ -74,14 +74,16 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
                           ),
                         ),
                       ),
-                      SizedBox(height: isCompact ? 44 : 92),
+                      SizedBox(height: isCompact ? 20 : 92),
                       LayoutBuilder(
                         builder: (context, constraints) {
                           final isNarrow = constraints.maxWidth < 360;
                           final colWidth = isNarrow ? constraints.maxWidth : constraints.maxWidth * 0.66;
-                          final illSize = isNarrow ? 120.0 : 180.0;
+                          final illSize = isNarrow ? 100.0 : (isCompact ? 130.0 : 180.0);
+                          final illHeight = isCompact ? 160.0 : 230.0;
+                          final parentHeight = isCompact ? 170.0 : 248.0;
                           return SizedBox(
-                            height: 248,
+                            height: parentHeight,
                             child: Stack(
                               clipBehavior: Clip.none,
                               children: [
@@ -92,14 +94,14 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
                                     opacity: isNarrow ? 0.35 : 1.0,
                                     child: SizedBox(
                                       width: illSize,
-                                      height: 230,
-                                      child: const _OtpIllustration(),
+                                      height: illHeight,
+                                      child: _OtpIllustration(height: illHeight),
                                     ),
                                   ),
                                 ),
                                 Positioned(
                                   left: 0,
-                                  top: 30,
+                                  top: isCompact ? 10 : 30,
                                   width: colWidth,
                                   child: Column(
                                     crossAxisAlignment:
@@ -109,28 +111,28 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
                                         'Verify OTP',
                                         style: GoogleFonts.poppins(
                                           color: EditoColors.dark,
-                                          fontSize: isNarrow ? 31 : 37,
+                                          fontSize: isNarrow ? (isCompact ? 26 : 31) : (isCompact ? 30 : 37),
                                           fontWeight: FontWeight.w800,
                                           height: 1.05,
                                         ),
                                       ),
-                                      const SizedBox(height: 20),
+                                      SizedBox(height: isCompact ? 10 : 20),
                                       Text(
                                         'Enter the 6-digit code sent to',
                                         style: GoogleFonts.inter(
                                           color: EditoColors.body.withValues(
                                             alpha: 0.74,
                                           ),
-                                          fontSize: isNarrow ? 16 : 19,
+                                          fontSize: isNarrow ? (isCompact ? 14 : 16) : (isCompact ? 16 : 19),
                                           fontWeight: FontWeight.w600,
                                         ),
                                       ),
-                                      const SizedBox(height: 14),
+                                      SizedBox(height: isCompact ? 8 : 14),
                                       RichText(
                                         text: TextSpan(
                                           style: GoogleFonts.inter(
                                             color: EditoColors.dark,
-                                            fontSize: isNarrow ? 16 : 19,
+                                            fontSize: isNarrow ? (isCompact ? 14 : 16) : (isCompact ? 16 : 19),
                                             fontWeight: FontWeight.w800,
                                           ),
                                           children: const [
@@ -152,17 +154,17 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
                           );
                         },
                       ),
-                      SizedBox(height: isCompact ? 48 : 94),
+                      SizedBox(height: isCompact ? 24 : 94),
                       Text(
                         'Enter 6-digit OTP',
                         textAlign: TextAlign.center,
                         style: GoogleFonts.inter(
                           color: EditoColors.body.withValues(alpha: 0.76),
-                          fontSize: 19,
+                          fontSize: isCompact ? 16 : 19,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                      const SizedBox(height: 34),
+                      SizedBox(height: isCompact ? 16 : 34),
                       _OtpBoxes(
                         controller: _otpController,
                         focusNode: _otpFocusNode,
@@ -181,23 +183,27 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
                                 size: 16,
                               ),
                               const SizedBox(width: 6),
-                              Text(
-                                _errorMessage!,
-                                style: GoogleFonts.inter(
-                                  color: const Color(0xFFFF3356),
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
+                              Expanded(
+                                child: Text(
+                                  _errorMessage!,
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.inter(
+                                    color: const Color(0xFFFF3356),
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                               ),
                             ],
                           ),
                         ),
                       ],
-                      const SizedBox(height: 44),
+                      SizedBox(height: isCompact ? 24 : 44),
                       const _OtpValidity(),
-                      const SizedBox(height: 47),
+                      SizedBox(height: isCompact ? 24 : 47),
                       _ContinueButton(
                         label: 'Verify & Continue',
+                        height: isCompact ? 58 : 66,
                         onTap: () {
                           final otp = _otpController.text.trim();
                           if (otp.length < 6) {
@@ -212,12 +218,12 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
                           }
                         },
                       ),
-                      const SizedBox(height: 44),
+                      SizedBox(height: isCompact ? 24 : 44),
                       Text.rich(
                         TextSpan(
                           style: GoogleFonts.inter(
                             color: EditoColors.body.withValues(alpha: 0.72),
-                            fontSize: 16,
+                            fontSize: isCompact ? 14 : 16,
                             fontWeight: FontWeight.w600,
                           ),
                           children: const [
@@ -233,7 +239,7 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
                         ),
                         textAlign: TextAlign.center,
                       ),
-                      SizedBox(height: isCompact ? 78 : 132),
+                      SizedBox(height: isCompact ? 40 : 132),
                       const _PrivacyCard(),
                       const SizedBox(height: 28),
                     ],
@@ -261,13 +267,18 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
 }
 
 class _OtpIllustration extends StatelessWidget {
-  const _OtpIllustration();
+  const _OtpIllustration({this.height = 230.0});
+
+  final double height;
 
   @override
   Widget build(BuildContext context) {
-    return CustomPaint(
-      painter: _OtpIllustrationPainter(),
-      child: const SizedBox.expand(),
+    return SizedBox(
+      height: height,
+      child: CustomPaint(
+        painter: _OtpIllustrationPainter(),
+        child: const SizedBox.expand(),
+      ),
     );
   }
 }
@@ -275,14 +286,20 @@ class _OtpIllustration extends StatelessWidget {
 class _OtpIllustrationPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width * 0.56, size.height * 0.5);
+    final double baseHeight = 230.0;
+    final double scale = size.height / baseHeight;
+    final double baseWidth = size.width / scale;
+    canvas.save();
+    canvas.scale(scale);
+
+    final center = Offset(baseWidth * 0.56, baseHeight * 0.5);
     final shadow = Paint()
       ..color = const Color(0x206C63FF)
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 22);
 
     canvas.drawOval(
       Rect.fromCenter(
-        center: Offset(center.dx, size.height * 0.87),
+        center: Offset(center.dx, baseHeight * 0.87),
         width: 142,
         height: 24,
       ),
@@ -322,7 +339,7 @@ class _OtpIllustrationPainter extends CustomPainter {
     canvas.restore();
 
     final bubble = RRect.fromRectAndRadius(
-      Rect.fromLTWH(size.width * 0.10, size.height * 0.27, 96, 78),
+      Rect.fromLTWH(baseWidth * 0.10, baseHeight * 0.27, 96, 78),
       const Radius.circular(13),
     );
     canvas.drawRRect(
@@ -335,29 +352,29 @@ class _OtpIllustrationPainter extends CustomPainter {
         ).createShader(bubble.outerRect),
     );
     final tail = Path()
-      ..moveTo(size.width * 0.46, size.height * 0.62)
-      ..lineTo(size.width * 0.39, size.height * 0.50)
-      ..lineTo(size.width * 0.52, size.height * 0.50)
+      ..moveTo(baseWidth * 0.46, baseHeight * 0.62)
+      ..lineTo(baseWidth * 0.39, baseHeight * 0.50)
+      ..lineTo(baseWidth * 0.52, baseHeight * 0.50)
       ..close();
     canvas.drawPath(tail, Paint()..color = const Color(0xFF7463FA));
 
     final shield = Path()
-      ..moveTo(size.width * 0.34, size.height * 0.34)
-      ..lineTo(size.width * 0.48, size.height * 0.40)
-      ..lineTo(size.width * 0.44, size.height * 0.55)
+      ..moveTo(baseWidth * 0.34, baseHeight * 0.34)
+      ..lineTo(baseWidth * 0.48, baseHeight * 0.40)
+      ..lineTo(baseWidth * 0.44, baseHeight * 0.55)
       ..quadraticBezierTo(
-        size.width * 0.34,
-        size.height * 0.62,
-        size.width * 0.25,
-        size.height * 0.55,
+        baseWidth * 0.34,
+        baseHeight * 0.62,
+        baseWidth * 0.25,
+        baseHeight * 0.55,
       )
-      ..lineTo(size.width * 0.21, size.height * 0.40)
+      ..lineTo(baseWidth * 0.21, baseHeight * 0.40)
       ..close();
     canvas.drawPath(shield, Paint()..color = const Color(0xFFEFEAFF));
     final check = Path()
-      ..moveTo(size.width * 0.28, size.height * 0.48)
-      ..lineTo(size.width * 0.34, size.height * 0.54)
-      ..lineTo(size.width * 0.44, size.height * 0.43);
+      ..moveTo(baseWidth * 0.28, baseHeight * 0.48)
+      ..lineTo(baseWidth * 0.34, baseHeight * 0.54)
+      ..lineTo(baseWidth * 0.44, baseHeight * 0.43);
     canvas.drawPath(
       check,
       Paint()
@@ -369,7 +386,7 @@ class _OtpIllustrationPainter extends CustomPainter {
     );
 
     final otp = RRect.fromRectAndRadius(
-      Rect.fromLTWH(size.width * 0.36, size.height * 0.57, 97, 41),
+      Rect.fromLTWH(baseWidth * 0.36, baseHeight * 0.57, 97, 41),
       const Radius.circular(9),
     );
     canvas.drawRRect(otp, Paint()..color = Colors.white);
@@ -383,24 +400,26 @@ class _OtpIllustrationPainter extends CustomPainter {
     final dotPaint = Paint()..color = const Color(0xFFC9C0FF);
     for (var i = 0; i < 4; i++) {
       canvas.drawCircle(
-        Offset(size.width * (0.47 + i * 0.10), size.height * 0.66),
+        Offset(baseWidth * (0.47 + i * 0.10), baseHeight * 0.66),
         5,
         dotPaint,
       );
     }
 
-    _drawLeaf(canvas, Offset(size.width * 0.18, size.height * 0.72), -0.52);
-    _drawLeaf(canvas, Offset(size.width * 0.76, size.height * 0.72), 0.54);
+    _drawLeaf(canvas, Offset(baseWidth * 0.18, baseHeight * 0.72), -0.52);
+    _drawLeaf(canvas, Offset(baseWidth * 0.76, baseHeight * 0.72), 0.54);
 
     final smallDotPaint = Paint()..color = const Color(0xFFE4DEFF);
     for (final dot in [
-      Offset(size.width * 0.07, size.height * 0.43),
-      Offset(size.width * 0.14, size.height * 0.56),
-      Offset(size.width * 0.86, size.height * 0.38),
-      Offset(size.width * 0.93, size.height * 0.48),
+      Offset(baseWidth * 0.07, baseHeight * 0.43),
+      Offset(baseWidth * 0.14, baseHeight * 0.56),
+      Offset(baseWidth * 0.86, baseHeight * 0.38),
+      Offset(baseWidth * 0.93, baseHeight * 0.48),
     ]) {
       canvas.drawCircle(dot, 4.5, smallDotPaint);
     }
+
+    canvas.restore();
   }
 
   void _drawLeaf(Canvas canvas, Offset center, double rotation) {

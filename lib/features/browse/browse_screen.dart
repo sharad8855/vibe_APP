@@ -34,7 +34,16 @@ class _BrowseHeader extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 12),
-        const _BrowseIconButton(icon: Icons.search_rounded),
+        _BrowseIconButton(
+          icon: Icons.search_rounded,
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => const SearchScreen(),
+              ),
+            );
+          },
+        ),
         const SizedBox(width: 12),
         const _BrowseIconButton(icon: Icons.tune_rounded),
       ],
@@ -43,28 +52,32 @@ class _BrowseHeader extends StatelessWidget {
 }
 
 class _BrowseIconButton extends StatelessWidget {
-  const _BrowseIconButton({required this.icon});
+  const _BrowseIconButton({required this.icon, this.onTap});
 
   final IconData icon;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 55,
-      height: 55,
-      decoration: BoxDecoration(
-        color: EditoColors.white.withValues(alpha: 0.72),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: EditoColors.border),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x0A000000),
-            offset: Offset(0, 8),
-            blurRadius: 22,
-          ),
-        ],
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 55,
+        height: 55,
+        decoration: BoxDecoration(
+          color: EditoColors.white.withValues(alpha: 0.72),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: EditoColors.border),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x0A000000),
+              offset: Offset(0, 8),
+              blurRadius: 22,
+            ),
+          ],
+        ),
+        child: Icon(icon, color: EditoColors.dark, size: 29),
       ),
-      child: Icon(icon, color: EditoColors.dark, size: 29),
     );
   }
 }
@@ -74,49 +87,64 @@ class _BrowseSearchField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 58,
-      padding: const EdgeInsets.symmetric(horizontal: 18),
-      decoration: BoxDecoration(
-        color: EditoColors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: EditoColors.border),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x08000000),
-            offset: Offset(0, 8),
-            blurRadius: 22,
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => const SearchScreen(),
           ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Icon(
-            Icons.search_rounded,
-            color: EditoColors.body.withValues(alpha: 0.70),
-            size: 28,
-          ),
-          const SizedBox(width: 13),
-          Expanded(
-            child: Text(
-              'Search templates, categories or creators',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: GoogleFonts.inter(
-                color: EditoColors.body.withValues(alpha: 0.66),
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
+        );
+      },
+      child: Container(
+        height: 58,
+        padding: const EdgeInsets.symmetric(horizontal: 18),
+        decoration: BoxDecoration(
+          color: EditoColors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: EditoColors.border),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x08000000),
+              offset: Offset(0, 8),
+              blurRadius: 22,
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.search_rounded,
+              color: EditoColors.body.withValues(alpha: 0.70),
+              size: 28,
+            ),
+            const SizedBox(width: 13),
+            Expanded(
+              child: Text(
+                'Search templates, categories or creators',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.inter(
+                  color: EditoColors.body.withValues(alpha: 0.66),
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 }
 
 class _BrowseCategoryStrip extends StatelessWidget {
-  const _BrowseCategoryStrip();
+  const _BrowseCategoryStrip({
+    required this.selectedCategory,
+    required this.onSelected,
+  });
+
+  final String selectedCategory;
+  final ValueChanged<String> onSelected;
 
   static const items = [
     ('All', Icons.grid_view_rounded, EditoColors.primary),
@@ -136,11 +164,14 @@ class _BrowseCategoryStrip extends StatelessWidget {
       child: Row(
         children: [
           for (var i = 0; i < items.length; i++) ...[
-            _BrowseCategoryTile(
-              label: items[i].$1,
-              icon: items[i].$2,
-              color: items[i].$3,
-              selected: i == 0,
+            GestureDetector(
+              onTap: () => onSelected(items[i].$1),
+              child: _BrowseCategoryTile(
+                label: items[i].$1,
+                icon: items[i].$2,
+                color: items[i].$3,
+                selected: selectedCategory.toLowerCase() == items[i].$1.toLowerCase(),
+              ),
             ),
             if (i != items.length - 1) const SizedBox(width: 22),
           ],
@@ -265,85 +296,94 @@ class _CollectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 118,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(9),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [data.color, data.accent.withValues(alpha: 0.72)],
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => CollectionDetailScreen(collection: data),
+          ),
+        );
+      },
+      child: Container(
+        width: 118,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(9),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [data.color, data.accent.withValues(alpha: 0.72)],
+          ),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x14000000),
+              offset: Offset(0, 8),
+              blurRadius: 20,
+            ),
+          ],
         ),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x14000000),
-            offset: Offset(0, 8),
-            blurRadius: 20,
-          ),
-        ],
-      ),
-      child: Stack(
-        children: [
-          Positioned.fill(child: CustomPaint(painter: _CollectionPainter())),
-          Positioned(
-            left: 0,
-            top: 0,
-            right: 8,
-            child: Text(
-              data.title,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: GoogleFonts.poppins(
-                color: Colors.white,
-                fontSize: 15,
-                fontWeight: FontWeight.w800,
-                height: 1.22,
+        child: Stack(
+          children: [
+            Positioned.fill(child: CustomPaint(painter: _CollectionPainter())),
+            Positioned(
+              left: 0,
+              top: 0,
+              right: 8,
+              child: Text(
+                data.title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.poppins(
+                  color: Colors.white,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                  height: 1.22,
+                ),
               ),
             ),
-          ),
-          Positioned(
-            left: 0,
-            top: 52,
-            right: 0,
-            child: Text(
-              data.count,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: GoogleFonts.inter(
-                color: Colors.white.withValues(alpha: 0.92),
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
+            Positioned(
+              left: 0,
+              top: 52,
+              right: 0,
+              child: Text(
+                data.count,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.inter(
+                  color: Colors.white.withValues(alpha: 0.92),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
-          ),
-          Positioned(
-            right: 0,
-            bottom: 0,
-            child: Container(
-              width: 31,
-              height: 31,
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.chevron_right_rounded,
-                color: EditoColors.dark,
-                size: 25,
+            Positioned(
+              right: 0,
+              bottom: 0,
+              child: Container(
+                width: 31,
+                height: 31,
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.chevron_right_rounded,
+                  color: EditoColors.dark,
+                  size: 25,
+                ),
               ),
             ),
-          ),
-          Positioned(
-            right: 4,
-            top: 2,
-            child: Icon(
-              data.icon,
-              color: Colors.white.withValues(alpha: 0.28),
-              size: 46,
+            Positioned(
+              right: 4,
+              top: 2,
+              child: Icon(
+                data.icon,
+                color: Colors.white.withValues(alpha: 0.28),
+                size: 46,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

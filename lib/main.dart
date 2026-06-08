@@ -13,16 +13,26 @@ part 'shared/widgets/privacy_card.dart';
 part 'shared/widgets/template_widgets.dart';
 part 'features/auth/login_screen.dart';
 part 'features/auth/verify_otp_screen.dart';
+part 'features/auth/splash_screen.dart';
 part 'features/auth/success_verification_animation.dart';
 part 'features/home/home_screen.dart';
 part 'features/home/search_screen.dart';
 part 'features/browse/browse_screen.dart';
+part 'features/browse/collection_detail_screen.dart';
 part 'features/my_videos/my_videos_screen.dart';
 part 'features/profile/profile_screen.dart';
 part 'features/profile/create_template_screen.dart';
 part 'features/profile/review_detection_screen.dart';
 part 'features/profile/define_slots_screen.dart';
 part 'features/profile/template_submitted_screen.dart';
+part 'features/profile/my_templates_screen.dart';
+part 'features/profile/earnings_screen.dart';
+part 'features/profile/saved_templates_screen.dart';
+part 'features/profile/liked_templates_screen.dart';
+part 'features/profile/pro_subscription_sheet.dart';
+part 'features/profile/account_settings_screen.dart';
+part 'features/profile/privacy_security_screen.dart';
+part 'features/profile/help_support_screen.dart';
 part 'features/settings/settings_screen.dart';
 part 'features/notifications/notifications_screen.dart';
 part 'features/template_detail/template_detail_screen.dart';
@@ -49,7 +59,7 @@ class EditoApp extends StatelessWidget {
         scaffoldBackgroundColor: EditoColors.background,
         textTheme: GoogleFonts.interTextTheme(),
       ),
-      home: const LoginScreen(),
+      home: const SplashScreen(),
     );
   }
 }

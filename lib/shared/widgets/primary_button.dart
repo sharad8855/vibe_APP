@@ -1,10 +1,15 @@
 part of '../../main.dart';
 
 class _ContinueButton extends StatelessWidget {
-  const _ContinueButton({required this.label, required this.onTap});
+  const _ContinueButton({
+    required this.label,
+    required this.onTap,
+    this.height = 66,
+  });
 
   final String label;
   final VoidCallback onTap;
+  final double height;
 
   @override
   Widget build(BuildContext context) {
@@ -28,7 +33,7 @@ class _ContinueButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(17),
           onTap: onTap,
           child: SizedBox(
-            height: 66,
+            height: height,
             child: Stack(
               alignment: Alignment.center,
               children: [
@@ -40,12 +45,12 @@ class _ContinueButton extends StatelessWidget {
                     fontWeight: FontWeight.w800,
                   ),
                 ),
-                const Positioned(
+                Positioned(
                   right: 27,
                   child: Icon(
                     Icons.arrow_forward_rounded,
                     color: EditoColors.white,
-                    size: 31,
+                    size: height * 0.47, // scales arrow icon size dynamically
                   ),
                 ),
               ],

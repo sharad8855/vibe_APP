@@ -404,12 +404,78 @@ class _SearchScreenState extends State<SearchScreen> {
       return _buildNoResultsPlaceholder();
     }
 
+    final query = _searchController.text.toLowerCase().trim();
+    // Get up to 3 autocomplete suggestions
+    final suggestions = _templates
+        .where((t) =>
+            t.title.toLowerCase().contains(query) ||
+            t.creator.toLowerCase().contains(query) ||
+            t.category.toLowerCase().contains(query))
+        .map((t) {
+          if (t.title.toLowerCase().contains(query)) return t.title;
+          if (t.creator.toLowerCase().contains(query)) return t.creator;
+          return t.category;
+        })
+        .toSet()
+        .take(3)
+        .toList();
+
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          if (suggestions.isNotEmpty && suggestions.any((s) => s.toLowerCase() != query)) ...[
+            Text(
+              'Suggestions',
+              style: GoogleFonts.poppins(
+                color: EditoColors.muted,
+                fontSize: 12.5,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final suggestion in suggestions)
+                  if (suggestion.toLowerCase() != query)
+                    GestureDetector(
+                      onTap: () => _runSearch(suggestion),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF1ECFF),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFE5DBFF)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.arrow_outward_rounded,
+                              size: 14,
+                              color: EditoColors.primary,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              suggestion,
+                              style: GoogleFonts.inter(
+                                color: EditoColors.primary,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+              ],
+            ),
+            const SizedBox(height: 20),
+          ],
           Text(
             'Search Results (${_filteredTemplates.length})',
             style: GoogleFonts.poppins(

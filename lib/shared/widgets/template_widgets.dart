@@ -97,18 +97,38 @@ class _TemplateCard extends StatelessWidget {
                       Positioned(
                         top: 8,
                         right: 8,
-                        child: Container(
-                          width: 35,
-                          height: 35,
-                          decoration: const BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.favorite_border_rounded,
-                            color: EditoColors.dark,
-                            size: 22,
-                          ),
+                        child: ValueListenableBuilder<List<TemplateData>>(
+                          valueListenable: LikedTemplatesManager.likedTemplatesNotifier,
+                          builder: (context, likedList, _) {
+                            final isLiked = likedList.any((t) => t.title == data.title);
+                            return GestureDetector(
+                              onTap: () {
+                                LikedTemplatesManager.toggleLike(data);
+                              },
+                              child: Container(
+                                width: 35,
+                                height: 35,
+                                decoration: const BoxDecoration(
+                                  color: Colors.white,
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Color(0x15000000),
+                                      offset: Offset(0, 2),
+                                      blurRadius: 6,
+                                    ),
+                                  ],
+                                ),
+                                child: Icon(
+                                  isLiked
+                                      ? Icons.favorite_rounded
+                                      : Icons.favorite_border_rounded,
+                                  color: isLiked ? const Color(0xFFFF3B30) : EditoColors.dark,
+                                  size: 20,
+                                ),
+                              ),
+                            );
+                          },
                         ),
                       ),
                       Positioned(
@@ -445,6 +465,243 @@ class _PriceBadge extends StatelessWidget {
           fontWeight: FontWeight.w800,
         ),
       ),
+    );
+  }
+}
+
+void showShareSheet(
+  BuildContext context, {
+  required String title,
+  TemplateData? template,
+  String sheetTitle = 'Share Template',
+  String subtitlePrefix = 'Send',
+}) {
+  showModalBottomSheet<void>(
+    context: context,
+    backgroundColor: Colors.transparent,
+    barrierColor: Colors.black.withValues(alpha: 0.5),
+    builder: (context) {
+      return _ReusableShareSheet(
+        title: title,
+        template: template,
+        sheetTitle: sheetTitle,
+        subtitlePrefix: subtitlePrefix,
+      );
+    },
+  );
+}
+
+class _ReusableShareSheet extends StatelessWidget {
+  const _ReusableShareSheet({
+    required this.title,
+    this.template,
+    required this.sheetTitle,
+    required this.subtitlePrefix,
+  });
+
+  final String title;
+  final TemplateData? template;
+  final String sheetTitle;
+  final String subtitlePrefix;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(24),
+          topRight: Radius.circular(24),
+        ),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 22),
+      child: SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 42,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE5E7EB),
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              ),
+            ),
+            const SizedBox(height: 18),
+            Text(
+              sheetTitle,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.poppins(
+                color: EditoColors.dark,
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              '$subtitlePrefix "$title" to your friends',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.inter(
+                color: EditoColors.body.withValues(alpha: 0.68),
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              height: 94,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                children: [
+                  _buildShareAppItem(
+                    context,
+                    icon: Icons.chat_bubble_outline_rounded,
+                    label: 'WhatsApp',
+                    color: const Color(0xFF25D366),
+                  ),
+                  _buildShareAppItem(
+                    context,
+                    icon: Icons.camera_alt_outlined,
+                    label: 'Instagram',
+                    color: const Color(0xFFE1306C),
+                  ),
+                  _buildShareAppItem(
+                    context,
+                    icon: Icons.send_rounded,
+                    label: 'Telegram',
+                    color: const Color(0xFF0088CC),
+                  ),
+                  _buildShareAppItem(
+                    context,
+                    icon: Icons.message_outlined,
+                    label: 'Messages',
+                    color: const Color(0xFF34C759),
+                  ),
+                  _buildShareAppItem(
+                    context,
+                    icon: Icons.alternate_email_rounded,
+                    label: 'Email',
+                    color: const Color(0xFF007AFF),
+                  ),
+                  _buildShareAppItem(
+                    context,
+                    icon: Icons.more_horiz_rounded,
+                    label: 'More',
+                    color: const Color(0xFF8E8E93),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Divider(color: Color(0xFFF1EEFF)),
+            const SizedBox(height: 12),
+            _buildShareActionRow(
+              context,
+              icon: Icons.link_rounded,
+              label: 'Copy Share Link',
+              onTap: () {
+                Navigator.of(context).pop();
+                Clipboard.setData(ClipboardData(text: 'https://edito.app/templates/${title.toLowerCase().replaceAll(' ', '-')}-link'));
+                ScaffoldMessenger.of(context).clearSnackBars();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Share link for "$title" copied to clipboard!',
+                      style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+                    ),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              },
+            ),
+            if (template != null)
+              _buildShareActionRow(
+                context,
+                icon: Icons.favorite_border_rounded,
+                label: 'Add to Favorites',
+                onTap: () {
+                  Navigator.of(context).pop();
+                  LikedTemplatesManager.toggleLike(template!);
+                },
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildShareAppItem(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required Color color,
+  }) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).clearSnackBars();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Shared successfully via $label!',
+              style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+            ),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: const Color(0xFF22B37D),
+          ),
+        );
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        child: Column(
+          children: [
+            Container(
+              width: 54,
+              height: 54,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: color, size: 26),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: GoogleFonts.inter(
+                color: EditoColors.dark,
+                fontSize: 11.5,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildShareActionRow(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return ListTile(
+      leading: Icon(icon, color: EditoColors.dark, size: 22),
+      title: Text(
+        label,
+        style: GoogleFonts.inter(
+          color: EditoColors.dark,
+          fontSize: 14,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+      trailing: const Icon(Icons.chevron_right_rounded, color: EditoColors.muted, size: 20),
+      contentPadding: EdgeInsets.zero,
+      onTap: onTap,
     );
   }
 }

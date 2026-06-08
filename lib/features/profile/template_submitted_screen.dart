@@ -6,9 +6,14 @@ class TemplateSubmittedScreen extends StatelessWidget {
   void _handleBackToMyTemplates(BuildContext context) {
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute<void>(
-        builder: (_) => const HomeScreen(initialIndex: 2), // Index 2 is Profile
+        builder: (_) => const HomeScreen(initialIndex: 3), // Index 3 is Profile
       ),
       (route) => false,
+    );
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => const MyTemplatesScreen(),
+      ),
     );
     
     // Show a helpful snackbar indicating success
@@ -25,19 +30,7 @@ class TemplateSubmittedScreen extends StatelessWidget {
     );
   }
 
-  void _showShareNotification(BuildContext context) {
-    ScaffoldMessenger.of(context).clearSnackBars();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Share link copied to clipboard!',
-          style: GoogleFonts.inter(fontWeight: FontWeight.w600),
-        ),
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 2),
-      ),
-    );
-  }
+
 
   void _showGuidelinesNotification(BuildContext context) {
     ScaffoldMessenger.of(context).clearSnackBars();
@@ -184,7 +177,11 @@ class TemplateSubmittedScreen extends StatelessWidget {
                 const SizedBox(height: 10),
                 // Share with Friends Button
                 OutlinedButton.icon(
-                  onPressed: () => _showShareNotification(context),
+                  onPressed: () => showShareSheet(
+                    context,
+                    title: 'My Custom Template',
+                    sheetTitle: 'Share Template',
+                  ),
                   icon: const Icon(Icons.share_outlined, size: 18, color: EditoColors.primary),
                   label: Text(
                     'Share with Friends',

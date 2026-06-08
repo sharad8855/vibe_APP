@@ -7,6 +7,7 @@ void main() {
   testWidgets('Edito login screen renders', (WidgetTester tester) async {
     await tester.binding.setSurfaceSize(const Size(430, 932));
     await tester.pumpWidget(const EditoApp());
+    await tester.pumpAndSettle(const Duration(seconds: 4));
 
     expect(find.byType(LoginScreen), findsOneWidget);
     expect(find.text('Welcome back!'), findsOneWidget);
@@ -23,6 +24,10 @@ void main() {
   testWidgets('Continue opens verify OTP screen', (WidgetTester tester) async {
     await tester.binding.setSurfaceSize(const Size(430, 932));
     await tester.pumpWidget(const EditoApp());
+    await tester.pumpAndSettle(const Duration(seconds: 4));
+
+    await tester.enterText(find.byType(EditableText), '9876543210');
+    await tester.pump();
 
     await tester.tap(find.text('Continue'));
     await tester.pumpAndSettle();
@@ -43,10 +48,18 @@ void main() {
   testWidgets('Verify opens home screen', (WidgetTester tester) async {
     await tester.binding.setSurfaceSize(const Size(430, 932));
     await tester.pumpWidget(const EditoApp());
+    await tester.pumpAndSettle(const Duration(seconds: 4));
+
+    await tester.enterText(find.byType(EditableText), '9876543210');
+    await tester.pump();
 
     await tester.tap(find.text('Continue'));
     await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('otp_input')), '123456');
+    await tester.pump();
     await tester.tap(find.text('Verify & Continue'));
+    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 600));
     await tester.pumpAndSettle();
 
     expect(find.byType(HomeScreen), findsOneWidget);
@@ -64,6 +77,22 @@ void main() {
     expect(find.byType(TemplateDetailScreen), findsOneWidget);
     expect(find.text('Use This Template'), findsOneWidget);
 
+    // Test share button is interactive
+    expect(find.byIcon(Icons.ios_share_rounded), findsOneWidget);
+    await tester.tap(find.byIcon(Icons.ios_share_rounded));
+    await tester.pumpAndSettle();
+
+    // Verify share sheet opened
+    expect(find.text('Share Template'), findsOneWidget);
+    expect(find.text('WhatsApp'), findsOneWidget);
+
+    // Tap WhatsApp to share
+    await tester.tap(find.text('WhatsApp'));
+    await tester.pumpAndSettle();
+
+    // Verify share confirmation SnackBar is shown
+    expect(find.text('Shared successfully via WhatsApp!'), findsOneWidget);
+
     await tester.drag(find.byType(CustomScrollView), const Offset(0, -560));
     await tester.pumpAndSettle();
 
@@ -79,10 +108,17 @@ void main() {
     expect(find.text('Travel Video'), findsOneWidget);
     expect(find.text('Cover Photo'), findsOneWidget);
 
+    await tester.tap(find.text('Upload Video'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Upload Photo'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'Wanderlust Vlog');
+    await tester.pumpAndSettle();
+
     await tester.scrollUntilVisible(
       find.text('Title Text'),
       320,
-      scrollable: find.byType(Scrollable),
+      scrollable: find.byType(Scrollable).first,
     );
     await tester.pumpAndSettle();
 
@@ -91,7 +127,7 @@ void main() {
     await tester.scrollUntilVisible(
       find.text('Tips for best results'),
       320,
-      scrollable: find.byType(Scrollable),
+      scrollable: find.byType(Scrollable).first,
     );
     await tester.pumpAndSettle();
 
@@ -100,7 +136,7 @@ void main() {
     await tester.scrollUntilVisible(
       find.text('Continue with Preview'),
       360,
-      scrollable: find.byType(Scrollable),
+      scrollable: find.byType(Scrollable).first,
     );
     await tester.pumpAndSettle();
 
@@ -113,7 +149,7 @@ void main() {
     await tester.scrollUntilVisible(
       find.text('Video Settings'),
       360,
-      scrollable: find.byType(Scrollable),
+      scrollable: find.byType(Scrollable).first,
     );
     await tester.pumpAndSettle();
 
@@ -122,7 +158,7 @@ void main() {
     await tester.scrollUntilVisible(
       find.text('AI Magic'),
       360,
-      scrollable: find.byType(Scrollable),
+      scrollable: find.byType(Scrollable).first,
     );
     await tester.pumpAndSettle();
 
@@ -131,7 +167,7 @@ void main() {
     await tester.scrollUntilVisible(
       find.text('Generate Video'),
       360,
-      scrollable: find.byType(Scrollable),
+      scrollable: find.byType(Scrollable).first,
     );
     await tester.pumpAndSettle();
 
@@ -161,13 +197,35 @@ void main() {
     expect(find.text('Generate Final Video'), findsOneWidget);
 
     await tester.tap(find.text('Generate Final Video'));
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
 
     expect(find.byType(GenerateVideoScreen), findsOneWidget);
     expect(find.text('Generating Your Video'), findsOneWidget);
     expect(find.text('AI is working its magic'), findsOneWidget);
     expect(find.text('Preparing Your Assets'), findsOneWidget);
+
+    final scrollableFinder = find.descendant(
+      of: find.byType(GenerateVideoScreen),
+      matching: find.byType(Scrollable),
+    );
+
+    await tester.scrollUntilVisible(
+      find.text('Go to My Videos'),
+      100,
+      scrollable: scrollableFinder.first,
+    );
+    await tester.pumpAndSettle();
+
     expect(find.text('Go to My Videos'), findsOneWidget);
+
+    await tester.scrollUntilVisible(
+      find.text("Please don't close the app"),
+      100,
+      scrollable: scrollableFinder.first,
+    );
+    await tester.pumpAndSettle();
+
     expect(find.text("Please don't close the app"), findsOneWidget);
 
     await tester.tap(find.text("Please don't close the app"));
@@ -302,5 +360,295 @@ void main() {
     expect(find.text('Default Template Settings'), findsOneWidget);
     expect(find.text('Clear Cache'), findsOneWidget);
     expect(find.text('About Edito'), findsOneWidget);
+
+    await tester.tap(find.byIcon(Icons.chevron_left_rounded));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ProfileScreen), findsOneWidget);
+
+    // ── Test Earnings Screen ──
+    await tester.tap(find.text('Earnings'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(EarningsScreen), findsOneWidget);
+    expect(find.text('Available Balance'), findsOneWidget);
+    expect(find.text('₹4,600'), findsOneWidget);
+    expect(find.text('Total Revenue'), findsOneWidget);
+    expect(find.text('₹29,600'), findsOneWidget);
+    expect(find.text('Total Withdrawn'), findsOneWidget);
+    expect(find.text('₹25,000'), findsOneWidget);
+    expect(find.text('Withdraw to Bank'), findsOneWidget);
+
+    // Verify filter pills are rendered
+    expect(find.text('Sales'), findsOneWidget);
+    expect(find.text('Withdrawals'), findsOneWidget);
+
+    // Tap Withdraw to Bank
+    await tester.tap(find.text('Withdraw to Bank'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Withdraw to Bank Account'), findsOneWidget);
+    expect(find.text('Confirm Withdrawal'), findsOneWidget);
+
+    // Confirm withdrawal
+    await tester.tap(find.text('Confirm Withdrawal'));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 2));
+    await tester.pumpAndSettle();
+
+    // Verify success state in modal
+    expect(find.text('Withdrawal Requested!'), findsOneWidget);
+
+    // Wait for modal auto-dismiss
+    await tester.pump(const Duration(seconds: 2));
+    await tester.pumpAndSettle();
+
+    // Now balance should be ₹0
+    expect(find.text('₹0'), findsOneWidget);
+
+    // Close Earnings Screen
+    await tester.tap(find.byIcon(Icons.chevron_left_rounded));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ProfileScreen), findsOneWidget);
+
+    // ── Test Saved Templates Screen ──
+    await tester.tap(find.text('Saved Templates'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(SavedTemplatesScreen), findsOneWidget);
+    expect(find.text('3 Saved Items'), findsOneWidget);
+    expect(find.text('Royal Wedding Moments'), findsOneWidget);
+    expect(find.text('Concert Reel Pack'), findsOneWidget);
+    expect(find.text('Beach Travel Diary'), findsOneWidget);
+
+    // Unsave the first item (Royal Wedding Moments)
+    await tester.tap(find.byIcon(Icons.bookmark_rounded).first);
+    await tester.pumpAndSettle();
+
+    // Check count decreases to 2
+    expect(find.text('2 Saved Items'), findsOneWidget);
+    expect(find.text('Royal Wedding Moments'), findsNothing);
+
+    // Verify undo is possible via snackbar
+    expect(find.text('UNDO'), findsOneWidget);
+    await tester.tap(find.text('UNDO'));
+    await tester.pumpAndSettle();
+
+    // Check count returns to 3
+    expect(find.text('3 Saved Items'), findsOneWidget);
+    expect(find.text('Royal Wedding Moments'), findsOneWidget);
+
+    // Toggle view to list view
+    await tester.tap(find.byIcon(Icons.view_list_rounded));
+    await tester.pumpAndSettle();
+
+    // Unsave in list view
+    await tester.tap(find.byIcon(Icons.bookmark_rounded).first);
+    await tester.pumpAndSettle();
+    expect(find.text('2 Saved Items'), findsOneWidget);
+
+    // Close Saved Templates Screen
+    await tester.tap(find.byIcon(Icons.chevron_left_rounded));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ProfileScreen), findsOneWidget);
+
+    // ── Test Account Settings Screen via Edit Profile Button ──
+    await tester.tap(find.text('Edit Profile'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AccountSettingsScreen), findsOneWidget);
+
+    // Close Account Settings
+    await tester.tap(find.byIcon(Icons.chevron_left_rounded));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ProfileScreen), findsOneWidget);
+
+    // ── Test Account Settings Screen via Profile Menu ──
+    await tester.tap(find.text('Account Settings'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AccountSettingsScreen), findsOneWidget);
+    expect(find.text('Full Name'), findsOneWidget);
+    expect(find.text('Username'), findsOneWidget);
+    expect(find.text('Email Address'), findsOneWidget);
+    expect(find.text('Creator Bio'), findsOneWidget);
+    expect(find.text('Save Changes'), findsOneWidget);
+
+    // Tap Save Changes
+    await tester.tap(find.text('Save Changes'));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Profile changes saved successfully!'), findsOneWidget);
+
+    // Close Account Settings
+    await tester.tap(find.byIcon(Icons.chevron_left_rounded));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ProfileScreen), findsOneWidget);
+
+    // ── Test Privacy & Security Screen ──
+    await tester.tap(find.text('Privacy & Security'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(PrivacySecurityScreen), findsOneWidget);
+    expect(find.text('Private Profile'), findsOneWidget);
+    expect(find.text('Public Earnings'), findsOneWidget);
+    expect(find.text('Two-Factor Authentication'), findsOneWidget);
+    expect(find.text('Active Login Sessions'), findsOneWidget);
+    expect(find.text('Clear Search History'), findsOneWidget);
+
+    // Close Privacy & Security
+    await tester.tap(find.byIcon(Icons.chevron_left_rounded));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ProfileScreen), findsOneWidget);
+
+    // ── Test Help & Support Screen ──
+    await tester.tap(find.text('Help & Support'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(HelpSupportScreen), findsOneWidget);
+    expect(find.text('Live Chat'), findsOneWidget);
+    expect(find.text('Email Us'), findsOneWidget);
+    expect(find.text('Frequently Asked Questions'), findsOneWidget);
+    expect(find.text('How do I withdraw my earnings?'), findsOneWidget);
+
+    // Close Help & Support
+    await tester.tap(find.byIcon(Icons.chevron_left_rounded));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ProfileScreen), findsOneWidget);
+
+    // ── Test Liked Templates Screen (Empty State) ──
+    await tester.tap(find.text('Liked Templates'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(LikedTemplatesScreen), findsOneWidget);
+    expect(find.text('Your liked templates list is empty'), findsOneWidget);
+
+    // Close Liked Templates Screen
+    await tester.tap(find.byIcon(Icons.chevron_left_rounded));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ProfileScreen), findsOneWidget);
+
+    // Go back to Home and Like a template
+    await tester.tap(find.text('Home'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Wanderlust Journey').first);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(TemplateDetailScreen), findsOneWidget);
+
+    // Tap favorite/like button
+    await tester.tap(find.byIcon(Icons.favorite_border_rounded));
+    await tester.pumpAndSettle();
+
+    // Verify it is now favorited
+    expect(find.byIcon(Icons.favorite_rounded), findsOneWidget);
+
+    // Go back to Profile -> Liked Templates
+    await tester.tap(find.byIcon(Icons.arrow_back_rounded));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Profile'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Liked Templates'));
+    await tester.pumpAndSettle();
+
+    // Verify template is present
+    expect(find.byType(LikedTemplatesScreen), findsOneWidget);
+    expect(find.text('1 Liked Items'), findsOneWidget);
+    expect(find.text('Wanderlust Journey'), findsOneWidget);
+
+    // Toggle view to list view
+    await tester.tap(find.byIcon(Icons.view_list_rounded));
+    await tester.pumpAndSettle();
+
+    // Unlike/Remove from Liked Screen
+    await tester.tap(find.byIcon(Icons.favorite_rounded));
+    await tester.pumpAndSettle();
+
+    // Verify it's empty
+    expect(find.text('Your liked templates list is empty'), findsOneWidget);
+
+    // Go back to Profile
+    await tester.tap(find.byIcon(Icons.chevron_left_rounded));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ProfileScreen), findsOneWidget);
+  });
+
+  testWidgets('My Videos filtering and tabs work correctly', (WidgetTester tester) async {
+    await tester.binding.setSurfaceSize(const Size(430, 932));
+    await tester.pumpWidget(const EditoApp());
+    await tester.pumpAndSettle(const Duration(seconds: 4));
+
+    // Bypass login by entering phone and continue
+    await tester.enterText(find.byType(EditableText), '9876543210');
+    await tester.pump();
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byKey(const ValueKey('otp_input')), '123456');
+    await tester.pump();
+    await tester.tap(find.text('Verify & Continue'));
+    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+
+    // Verify we are on HomeScreen, then tap "My Videos" tab
+    expect(find.byType(HomeScreen), findsOneWidget);
+    await tester.tap(find.text('My Videos'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(MyVideosScreen), findsOneWidget);
+
+    // Initially "All" should show the non-template videos
+    expect(find.text('Wanderlust Journey'), findsOneWidget); // Completed
+    expect(find.text('Urban Style Intro'), findsOneWidget); // In Progress
+    expect(find.text('Party Night Vibes'), findsOneWidget); // Draft
+    expect(find.text('Neon Cyberpunk Promo'), findsNothing); // Template is filtered out in 'All'
+
+    // Tap "In Progress" tab
+    await tester.tap(find.text('In Progress').first);
+    await tester.pumpAndSettle();
+
+    // Verify only "In Progress" videos are visible
+    expect(find.text('Urban Style Intro'), findsOneWidget);
+    expect(find.text('Corporate Minimal'), findsOneWidget);
+    expect(find.text('Wanderlust Journey'), findsNothing);
+
+    // Tap "Completed" stats card
+    await tester.tap(find.text('Completed').last);
+    await tester.pumpAndSettle();
+
+    // Verify only "Completed" videos are visible
+    expect(find.text('Wanderlust Journey'), findsOneWidget);
+    expect(find.text('Royal Wedding Moments'), findsOneWidget);
+    expect(find.text('Urban Style Intro'), findsNothing);
+
+    // Tap "Drafts" tab
+    await tester.tap(find.text('Drafts').first);
+    await tester.pumpAndSettle();
+
+    // Verify only "Drafts" are visible
+    expect(find.text('Party Night Vibes'), findsOneWidget);
+    expect(find.text('Wanderlust Journey'), findsNothing);
+
+    // Tap "Templates" tab
+    await tester.tap(find.text('Templates').first);
+    await tester.pumpAndSettle();
+
+    // Verify template is visible
+    expect(find.text('Neon Cyberpunk Promo'), findsOneWidget);
+    expect(find.text('Party Night Vibes'), findsNothing);
   });
 }

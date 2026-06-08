@@ -39,3 +39,23 @@ class CollectionData {
   final Color accent;
   final IconData icon;
 }
+
+class LikedTemplatesManager {
+  static final ValueNotifier<List<TemplateData>> likedTemplatesNotifier =
+      ValueNotifier<List<TemplateData>>([]);
+
+  static bool isLiked(TemplateData template) {
+    return likedTemplatesNotifier.value.any((t) => t.title == template.title);
+  }
+
+  static void toggleLike(TemplateData template) {
+    final list = List<TemplateData>.from(likedTemplatesNotifier.value);
+    final index = list.indexWhere((t) => t.title == template.title);
+    if (index >= 0) {
+      list.removeAt(index);
+    } else {
+      list.add(template);
+    }
+    likedTemplatesNotifier.value = list;
+  }
+}

@@ -199,12 +199,7 @@ class _GenerationPreview extends StatelessWidget {
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
-                    CircularProgressIndicator(
-                      value: progress,
-                      strokeWidth: 11,
-                      backgroundColor: Colors.white.withValues(alpha: 0.78),
-                      color: EditoColors.primary,
-                    ),
+                    _NeonProgressIndicator(progress: progress),
                     Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -881,4 +876,171 @@ class _GenerationTaskData {
   final String title;
   final String subtitle;
   final _TaskStatus status;
+}
+
+// ─────────────────────────────────────────────────────────────
+// Glowing Neon Progress Indicator
+// ─────────────────────────────────────────────────────────────
+
+class _NeonProgressIndicator extends StatefulWidget {
+  const _NeonProgressIndicator({required this.progress});
+
+  final double progress;
+
+  @override
+  State<_NeonProgressIndicator> createState() => _NeonProgressIndicatorState();
+}
+
+class _NeonProgressIndicatorState extends State<_NeonProgressIndicator>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _rotationController;
+
+  @override
+  void initState() {
+    super.initState();
+    _rotationController = AnimationController(
+      duration: const Duration(seconds: 6),
+      vsync: this,
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _rotationController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDone = widget.progress >= 1.0;
+
+    return AnimatedScale(
+      duration: const Duration(milliseconds: 400),
+      scale: isDone ? 1.05 : 1.0,
+      curve: Curves.elasticOut,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          if (isDone)
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 500),
+              width: 140,
+              height: 140,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: EditoColors.primary.withValues(alpha: 0.25),
+                    blurRadius: 35,
+                    spreadRadius: 8,
+                  ),
+                ],
+              ),
+            ),
+          RotationTransition(
+            turns: _rotationController,
+            child: SizedBox(
+              width: 148,
+              height: 148,
+              child: CustomPaint(
+                painter: _NeonProgressPainter(progress: widget.progress),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NeonProgressPainter extends CustomPainter {
+  _NeonProgressPainter({required this.progress});
+
+  final double progress;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = (size.width - 16) / 2;
+    const startAngle = -math.pi / 2;
+    final sweepAngle = 2 * math.pi * progress;
+
+    final trackPaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.15)
+      ..strokeWidth = 10
+      ..style = PaintingStyle.stroke;
+    canvas.drawCircle(center, radius, trackPaint);
+
+    if (progress <= 0) return;
+
+    final glowPaintOuter = Paint()
+      ..shader = const SweepGradient(
+        colors: [
+          EditoColors.primary,
+          Color(0xFF00F0FF),
+          EditoColors.primary,
+        ],
+        stops: [0.0, 0.5, 1.0],
+      ).createShader(Rect.fromCircle(center: center, radius: radius))
+      ..strokeWidth = 18
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10);
+
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: radius),
+      startAngle,
+      sweepAngle,
+      false,
+      glowPaintOuter,
+    );
+
+    final glowPaintMid = Paint()
+      ..shader = const SweepGradient(
+        colors: [
+          EditoColors.primary,
+          Color(0xFF00F0FF),
+          EditoColors.primary,
+        ],
+        stops: [0.0, 0.5, 1.0],
+      ).createShader(Rect.fromCircle(center: center, radius: radius))
+      ..strokeWidth = 13
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
+
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: radius),
+      startAngle,
+      sweepAngle,
+      false,
+      glowPaintMid,
+    );
+
+    final corePaint = Paint()
+      ..shader = const SweepGradient(
+        colors: [
+          EditoColors.primary,
+          Color(0xFF00F0FF),
+          EditoColors.primary,
+        ],
+        stops: [0.0, 0.5, 1.0],
+      ).createShader(Rect.fromCircle(center: center, radius: radius))
+      ..strokeWidth = 8
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: radius),
+      startAngle,
+      sweepAngle,
+      false,
+      corePaint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _NeonProgressPainter oldDelegate) {
+    return oldDelegate.progress != progress;
+  }
 }
