@@ -1,13 +1,129 @@
 part of '../../main.dart';
 
-class UseTemplateScreen extends StatelessWidget {
+class UseTemplateScreen extends StatefulWidget {
   const UseTemplateScreen({super.key, required this.template});
 
   final TemplateData template;
 
   @override
+  State<UseTemplateScreen> createState() => _UseTemplateScreenState();
+}
+
+class _UseTemplateScreenState extends State<UseTemplateScreen> {
+  final Map<String, String> _uploadedFiles = {};
+  final TextEditingController _textController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _textController.addListener(_onTextChanged);
+  }
+
+  @override
+  void dispose() {
+    _textController.removeListener(_onTextChanged);
+    _textController.dispose();
+    super.dispose();
+  }
+
+  void _onTextChanged() {
+    setState(() {}); // Updates form validation visually as user types
+  }
+
+  bool get _isFormValid {
+    final isWedding = widget.template.category == 'WEDDING';
+    if (isWedding) {
+      return _uploadedFiles.containsKey('Bride Video') &&
+             _uploadedFiles.containsKey('Groom Video') &&
+             _uploadedFiles.containsKey('Couple Photo') &&
+             _textController.text.trim().isNotEmpty;
+    } else {
+      final categoryName = _titleCase(widget.template.category);
+      return _uploadedFiles.containsKey('$categoryName Video') &&
+             _uploadedFiles.containsKey('Cover Photo') &&
+             _textController.text.trim().isNotEmpty;
+    }
+  }
+
+  void _onUploadAsset(String assetTitle, String fileExtension, String defaultSize) {
+    setState(() {
+      final randomNum = math.Random().nextInt(89) + 10;
+      final ext = fileExtension.toLowerCase();
+      _uploadedFiles[assetTitle] = '${assetTitle.replaceAll(' ', '_').toLowerCase()}_v$randomNum.$ext ($defaultSize)';
+    });
+
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          '$assetTitle uploaded successfully!',
+          style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: Colors.white),
+        ),
+        backgroundColor: const Color(0xFF22B37D),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  void _onClearAsset(String assetTitle) {
+    setState(() {
+      _uploadedFiles.remove(assetTitle);
+    });
+
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Removed $assetTitle',
+          style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+        ),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  void _onContinue() {
+    if (!_isFormValid) {
+      final isWedding = widget.template.category == 'WEDDING';
+      final List<String> missing = [];
+      if (isWedding) {
+        if (!_uploadedFiles.containsKey('Bride Video')) missing.add('Bride Video');
+        if (!_uploadedFiles.containsKey('Groom Video')) missing.add('Groom Video');
+        if (!_uploadedFiles.containsKey('Couple Photo')) missing.add('Couple Photo');
+        if (_textController.text.trim().isEmpty) missing.add('Couple Name');
+      } else {
+        final categoryName = _titleCase(widget.template.category);
+        if (!_uploadedFiles.containsKey('$categoryName Video')) missing.add('$categoryName Video');
+        if (!_uploadedFiles.containsKey('Cover Photo')) missing.add('Cover Photo');
+        if (_textController.text.trim().isEmpty) missing.add('Title Text');
+      }
+
+      ScaffoldMessenger.of(context).clearSnackBars();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Missing: ${missing.join(', ')}',
+            style: GoogleFonts.inter(fontWeight: FontWeight.w700, color: Colors.white),
+          ),
+          backgroundColor: EditoColors.accent,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => PreviewCustomizeScreen(template: widget.template),
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final isWedding = template.category == 'WEDDING';
+    final isWedding = widget.template.category == 'WEDDING';
     final assetRows = isWedding
         ? const [
             _UploadAssetData(
@@ -70,7 +186,7 @@ class UseTemplateScreen extends StatelessWidget {
             _UploadAssetData(
               step: '1',
               icon: Icons.videocam_outlined,
-              title: '${_titleCase(template.category)} Video',
+              title: '${_titleCase(widget.template.category)} Video',
               subtitle: 'Recommended: 5-15 sec',
               meta: 'MP4, MOV  •  Max 100MB',
               action: 'Upload Video',
@@ -133,16 +249,30 @@ class UseTemplateScreen extends StatelessWidget {
                       const _UploadSectionHeader(),
                       const SizedBox(height: 20),
                       for (var i = 0; i < assetRows.length; i++) ...[
-                        _UploadAssetRow(data: assetRows[i]),
+                        _UploadAssetRow(
+                          data: assetRows[i],
+                          uploadedPath: _uploadedFiles[assetRows[i].title],
+                          onUpload: () {
+                            final ext = assetRows[i].title.contains('Photo') || assetRows[i].title.contains('Logo') ? 'PNG' : 'MP4';
+                            final size = assetRows[i].title.contains('Photo') || assetRows[i].title.contains('Logo') ? '3.8 MB' : '48.5 MB';
+                            _onUploadAsset(assetRows[i].title, ext, size);
+                          },
+                          onClear: () => _onClearAsset(assetRows[i].title),
+                          textController: assetRows[i].inputHint != null ? _textController : null,
+                        ),
                         if (i != assetRows.length - 1)
                           const SizedBox(height: 10),
                       ],
                       const SizedBox(height: 34),
-                      _UploadTipsCard(template: template),
+                      _UploadTipsCard(template: widget.template),
                       const SizedBox(height: 62),
                       const _SecureDataNote(),
                       const SizedBox(height: 31),
-                      _UploadContinueButton(template: template),
+                      _UploadContinueButton(
+                        template: widget.template,
+                        isValid: _isFormValid,
+                        onTap: _onContinue,
+                      ),
                       const SizedBox(height: 17),
                       Text(
                         'You can preview before final generation',
@@ -429,115 +559,157 @@ class _UploadSectionHeader extends StatelessWidget {
 }
 
 class _UploadAssetRow extends StatelessWidget {
-  const _UploadAssetRow({required this.data});
+  const _UploadAssetRow({
+    required this.data,
+    required this.uploadedPath,
+    required this.onUpload,
+    required this.onClear,
+    this.textController,
+  });
 
   final _UploadAssetData data;
+  final String? uploadedPath;
+  final VoidCallback onUpload;
+  final VoidCallback onClear;
+  final TextEditingController? textController;
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 224,
-      child: Row(
-        children: [
-          SizedBox(
-            width: 45,
+    final isUploaded = uploadedPath != null;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 45,
+          child: Padding(
+            padding: const EdgeInsets.only(top: 18),
             child: Center(
               child: CircleAvatar(
                 radius: 14,
-                backgroundColor: const Color(0xFFE9DFFF),
-                child: Text(
-                  data.step,
-                  style: GoogleFonts.poppins(
-                    color: EditoColors.primary,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
+                backgroundColor: isUploaded ? const Color(0xFFE8F8EF) : const Color(0xFFE9DFFF),
+                child: isUploaded
+                    ? const Icon(Icons.check_rounded, color: Color(0xFF22B37D), size: 14)
+                    : Text(
+                        data.step,
+                        style: GoogleFonts.poppins(
+                          color: EditoColors.primary,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
               ),
             ),
           ),
-          Expanded(
-            child: Container(
-              height: 224,
-              padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
-              decoration: BoxDecoration(
-                color: EditoColors.white.withValues(alpha: 0.86),
-                borderRadius: BorderRadius.circular(13),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x06000000),
-                    offset: Offset(0, 8),
-                    blurRadius: 22,
-                  ),
-                ],
+        ),
+        Expanded(
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 250),
+            padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+            decoration: BoxDecoration(
+              color: EditoColors.white.withValues(alpha: 0.86),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: isUploaded ? const Color(0xFFCBEEDD) : const Color(0xFFF1EEFF),
+                width: 1.2,
               ),
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        width: 66,
-                        height: 66,
-                        decoration: BoxDecoration(
-                          color: data.tint,
-                          borderRadius: BorderRadius.circular(13),
-                        ),
-                        child: Icon(data.icon, color: data.color, size: 34),
+              boxShadow: [
+                BoxShadow(
+                  color: isUploaded ? const Color(0x0522B37D) : const Color(0x06000000),
+                  offset: const Offset(0, 8),
+                  blurRadius: 22,
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 66,
+                      height: 66,
+                      decoration: BoxDecoration(
+                        color: isUploaded ? const Color(0xFFE8F8EF) : data.tint,
+                        borderRadius: BorderRadius.circular(13),
                       ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Flexible(
-                                  child: Text(
-                                    data.title,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: GoogleFonts.poppins(
-                                      color: EditoColors.dark,
-                                      fontSize: 17,
-                                      fontWeight: FontWeight.w800,
-                                    ),
+                      child: Icon(
+                        isUploaded ? Icons.check_circle_outline_rounded : data.icon,
+                        color: isUploaded ? const Color(0xFF22B37D) : data.color,
+                        size: 34,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  data.title,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: GoogleFonts.poppins(
+                                    color: EditoColors.dark,
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w800,
                                   ),
                                 ),
-                                if (data.required)
-                                  Text(
-                                    '  *',
-                                    style: GoogleFonts.poppins(
-                                      color: EditoColors.accent,
-                                      fontSize: 17,
+                              ),
+                              if (data.required && !isUploaded)
+                                Text(
+                                  '  *',
+                                  style: GoogleFonts.poppins(
+                                    color: EditoColors.accent,
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                              if (isUploaded)
+                                Container(
+                                  margin: const EdgeInsets.only(left: 8),
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFE8F8EF),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    'READY',
+                                    style: GoogleFonts.inter(
+                                      color: const Color(0xFF22B37D),
+                                      fontSize: 10,
                                       fontWeight: FontWeight.w900,
                                     ),
                                   ),
-                                if (!data.required)
-                                  Text(
-                                    '  Optional',
-                                    style: GoogleFonts.inter(
-                                      color: EditoColors.body.withValues(
-                                        alpha: 0.78,
-                                      ),
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w700,
-                                    ),
+                                ),
+                              if (!data.required && !isUploaded)
+                                Text(
+                                  '  Optional',
+                                  style: GoogleFonts.inter(
+                                    color: EditoColors.body.withValues(alpha: 0.78),
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
                                   ),
-                              ],
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            isUploaded ? uploadedPath! : data.subtitle,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.inter(
+                              color: isUploaded ? const Color(0xFF22B37D) : EditoColors.body.withValues(alpha: 0.78),
+                              fontSize: 13,
+                              fontWeight: isUploaded ? FontWeight.w800 : FontWeight.w700,
                             ),
-                            const SizedBox(height: 8),
-                            Text(
-                              data.subtitle,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: GoogleFonts.inter(
-                                color: EditoColors.body.withValues(alpha: 0.78),
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            const SizedBox(height: 5),
+                          ),
+                          const SizedBox(height: 5),
+                          if (!isUploaded)
                             Text(
                               data.meta,
                               maxLines: 1,
@@ -548,80 +720,25 @@ class _UploadAssetRow extends StatelessWidget {
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
-                          ],
-                        ),
+                        ],
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  SizedBox(
-                    height: data.inputHint == null ? 100 : 52,
-                    child: data.inputHint == null
-                        ? _UploadActionColumn(data: data)
-                        : _UploadInputField(hint: data.inputHint!),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _UploadActionColumn extends StatelessWidget {
-  const _UploadActionColumn({required this.data});
-
-  final _UploadAssetData data;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Container(
-          height: 52,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: data.color.withValues(alpha: 0.04),
-            borderRadius: BorderRadius.circular(11),
-            border: Border.all(color: data.color.withValues(alpha: 0.28)),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.cloud_upload_outlined, color: data.color, size: 24),
-              const SizedBox(width: 10),
-              Text(
-                data.action,
-                style: GoogleFonts.inter(
-                  color: data.color,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w900,
+                    ),
+                  ],
                 ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 18),
-        RichText(
-          text: TextSpan(
-            style: GoogleFonts.inter(
-              color: EditoColors.body.withValues(alpha: 0.78),
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
+                const SizedBox(height: 14),
+                data.inputHint == null
+                    ? _UploadActionRowButton(
+                        data: data,
+                        isUploaded: isUploaded,
+                        onUpload: onUpload,
+                        onClear: onClear,
+                      )
+                    : _UploadInputField(
+                        hint: data.inputHint!,
+                        controller: textController!,
+                      ),
+              ],
             ),
-            children: const [
-              TextSpan(text: 'or  '),
-              TextSpan(
-                text: 'Choose from Gallery',
-                style: TextStyle(
-                  color: EditoColors.primary,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ],
           ),
         ),
       ],
@@ -629,10 +746,162 @@ class _UploadActionColumn extends StatelessWidget {
   }
 }
 
-class _UploadInputField extends StatelessWidget {
-  const _UploadInputField({required this.hint});
+class _UploadActionRowButton extends StatelessWidget {
+  const _UploadActionRowButton({
+    required this.data,
+    required this.isUploaded,
+    required this.onUpload,
+    required this.onClear,
+  });
+
+  final _UploadAssetData data;
+  final bool isUploaded;
+  final VoidCallback onUpload;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    if (isUploaded) {
+      return Row(
+        children: [
+          Expanded(
+            child: GestureDetector(
+              onTap: onUpload,
+              child: Container(
+                height: 48,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF4F3F8),
+                  borderRadius: BorderRadius.circular(11),
+                  border: Border.all(color: const Color(0xFFDDDCE5)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.sync_rounded, color: EditoColors.dark, size: 20),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Replace File',
+                      style: GoogleFonts.inter(
+                        color: EditoColors.dark,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          GestureDetector(
+            onTap: onClear,
+            child: Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF0F3),
+                borderRadius: BorderRadius.circular(11),
+                border: Border.all(color: const Color(0xFFFFD1D8)),
+              ),
+              child: const Icon(
+                Icons.delete_outline_rounded,
+                color: Color(0xFFFF3B30),
+                size: 22,
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        GestureDetector(
+          onTap: onUpload,
+          child: Container(
+            height: 52,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: data.color.withValues(alpha: 0.04),
+              borderRadius: BorderRadius.circular(11),
+              border: Border.all(color: data.color.withValues(alpha: 0.28)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.cloud_upload_outlined, color: data.color, size: 24),
+                const SizedBox(width: 10),
+                Text(
+                  data.action,
+                  style: GoogleFonts.inter(
+                    color: data.color,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 18),
+        GestureDetector(
+          onTap: onUpload,
+          child: RichText(
+            text: TextSpan(
+              style: GoogleFonts.inter(
+                color: EditoColors.body.withValues(alpha: 0.78),
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+              ),
+              children: const [
+                TextSpan(text: 'or  '),
+                TextSpan(
+                  text: 'Choose from Gallery',
+                  style: TextStyle(
+                    color: EditoColors.primary,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _UploadInputField extends StatefulWidget {
+  const _UploadInputField({
+    required this.hint,
+    required this.controller,
+  });
 
   final String hint;
+  final TextEditingController controller;
+
+  @override
+  State<_UploadInputField> createState() => _UploadInputFieldState();
+}
+
+class _UploadInputFieldState extends State<_UploadInputField> {
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(_updateCounter);
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_updateCounter);
+    super.dispose();
+  }
+
+  void _updateCounter() {
+    if (mounted) setState(() {});
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -647,19 +916,28 @@ class _UploadInputField extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            child: Text(
-              hint,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+            child: TextField(
+              controller: widget.controller,
               style: GoogleFonts.inter(
-                color: EditoColors.body.withValues(alpha: 0.70),
+                color: EditoColors.dark,
                 fontSize: 14,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w800,
+              ),
+              maxLength: 30,
+              decoration: InputDecoration(
+                hintText: widget.hint,
+                hintStyle: GoogleFonts.inter(
+                  color: EditoColors.body.withValues(alpha: 0.5),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                ),
+                border: InputBorder.none,
+                counterText: '',
               ),
             ),
           ),
           Text(
-            '0/30',
+            '${widget.controller.text.length}/30',
             style: GoogleFonts.inter(
               color: EditoColors.body.withValues(alpha: 0.72),
               fontSize: 13,
@@ -842,59 +1120,67 @@ class _SecureDataNote extends StatelessWidget {
 }
 
 class _UploadContinueButton extends StatelessWidget {
-  const _UploadContinueButton({required this.template});
+  const _UploadContinueButton({
+    required this.template,
+    required this.isValid,
+    required this.onTap,
+  });
 
   final TemplateData template;
+  final bool isValid;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: () {
-          Navigator.of(context).push(
-            MaterialPageRoute<void>(
-              builder: (_) => PreviewCustomizeScreen(template: template),
-            ),
-          );
-        },
-        child: Container(
-          height: 75,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            gradient: const LinearGradient(
-              colors: [Color(0xFF5A2EFF), Color(0xFF7B35FF)],
-            ),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x306C63FF),
-                offset: Offset(0, 12),
-                blurRadius: 26,
+    return AnimatedOpacity(
+      duration: const Duration(milliseconds: 200),
+      opacity: isValid ? 1.0 : 0.6,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: onTap,
+          child: Container(
+            height: 75,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              gradient: LinearGradient(
+                colors: isValid
+                    ? [const Color(0xFF5A2EFF), const Color(0xFF7B35FF)]
+                    : [const Color(0xFF88849E), const Color(0xFFA59EC2)],
               ),
-            ],
-          ),
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  'Continue with Preview',
-                  style: GoogleFonts.poppins(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
+              boxShadow: isValid
+                  ? const [
+                      BoxShadow(
+                        color: Color(0x306C63FF),
+                        offset: Offset(0, 12),
+                        blurRadius: 26,
+                      ),
+                    ]
+                  : null,
+            ),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'Continue with Preview',
+                    style: GoogleFonts.poppins(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 18),
-                const Icon(
-                  Icons.arrow_forward_rounded,
-                  color: Colors.white,
-                  size: 31,
-                ),
-              ],
+                  const SizedBox(width: 18),
+                  const Icon(
+                    Icons.arrow_forward_rounded,
+                    color: Colors.white,
+                    size: 31,
+                  ),
+                ],
+              ),
             ),
           ),
         ),

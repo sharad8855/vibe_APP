@@ -1,9 +1,20 @@
 part of '../../main.dart';
 
 class VideoReadyScreen extends StatelessWidget {
-  const VideoReadyScreen({super.key, required this.template});
+  const VideoReadyScreen({
+    super.key,
+    required this.template,
+    required this.assetsData,
+    required this.quality,
+    required this.length,
+    required this.ratio,
+  });
 
   final TemplateData template;
+  final Map<String, (String, String)> assetsData;
+  final String quality;
+  final String length;
+  final String ratio;
 
   void _showAction(BuildContext context, String message) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -39,12 +50,14 @@ class VideoReadyScreen extends StatelessWidget {
                     children: [
                       _VideoReadyHeader(onDone: () => _goHome(context, 2)),
                       const SizedBox(height: 22),
-                      _ReadyVideoPlayer(template: template),
+                      _ReadyVideoPlayer(template: template, length: length),
                       const SizedBox(height: 16),
                       _ReadyInfoCard(
                         template: template,
+                        quality: quality,
+                        length: length,
+                        assetsData: assetsData,
                         onEditAgain: () {
-                          Navigator.of(context).pop();
                           Navigator.of(context).pop();
                         },
                       ),
@@ -161,10 +174,85 @@ class _VideoReadyHeader extends StatelessWidget {
 // Video player
 // ─────────────────────────────────────────────────────────────
 
-class _ReadyVideoPlayer extends StatelessWidget {
-  const _ReadyVideoPlayer({required this.template});
+class _ReadyVideoPlayer extends StatefulWidget {
+  const _ReadyVideoPlayer({required this.template, required this.length});
 
   final TemplateData template;
+  final String length;
+
+  @override
+  State<_ReadyVideoPlayer> createState() => _ReadyVideoPlayerState();
+}
+
+class _ReadyVideoPlayerState extends State<_ReadyVideoPlayer> {
+  Timer? _playbackTimer;
+  double _progress = 0.0;
+  bool _isPlaying = false;
+  bool _showActionOverlay = false;
+  IconData _overlayIcon = Icons.play_arrow_rounded;
+
+  int get _totalSeconds {
+    final numericOnly = RegExp(r'\d+').firstMatch(widget.length)?.group(0);
+    if (numericOnly != null) {
+      return int.tryParse(numericOnly) ?? 30;
+    }
+    return 30;
+  }
+
+  @override
+  void dispose() {
+    _playbackTimer?.cancel();
+    super.dispose();
+  }
+
+  void _togglePlay() {
+    setState(() {
+      _isPlaying = !_isPlaying;
+      _overlayIcon = _isPlaying ? Icons.play_arrow_rounded : Icons.pause_rounded;
+      _showActionOverlay = true;
+      if (_isPlaying) {
+        _startTimer();
+      } else {
+        _playbackTimer?.cancel();
+      }
+    });
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (mounted) {
+        setState(() {
+          _showActionOverlay = false;
+        });
+      }
+    });
+  }
+
+  void _startTimer() {
+    _playbackTimer?.cancel();
+    _playbackTimer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
+      if (!mounted) return;
+      setState(() {
+        _progress += 0.1 / _totalSeconds;
+        if (_progress >= 1.0) {
+          _progress = 0.0; // Loop
+        }
+      });
+    });
+  }
+
+  String _formatDuration(double factor) {
+    final total = _totalSeconds;
+    final current = (factor * total).round();
+    final mins = current ~/ 60;
+    final secs = current % 60;
+    return '${mins.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
+  }
+
+  void _seekTo(double localX, double totalWidth) {
+    if (totalWidth <= 0) return;
+    final newProgress = (localX / totalWidth).clamp(0.0, 1.0);
+    setState(() {
+      _progress = newProgress;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -175,8 +263,15 @@ class _ReadyVideoPlayer extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            _TemplateVisual(data: template),
-            CustomPaint(painter: _DetailHeroOverlayPainter(template)),
+            _TemplateVisual(data: widget.template),
+            if (_isPlaying)
+              Positioned.fill(
+                child: _VideoPlayerRippleAnimation(
+                  progress: _progress,
+                  color: widget.template.color,
+                ),
+              ),
+            CustomPaint(painter: _DetailHeroOverlayPainter(widget.template)),
             DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
@@ -192,23 +287,51 @@ class _ReadyVideoPlayer extends StatelessWidget {
             Positioned(
               left: 14,
               top: 14,
-              child: _VideoPill(icon: Icons.hd_outlined, label: '1080p'),
+              child: _VideoPill(icon: Icons.hd_outlined, label: widget.length.contains('4K') ? '4K' : '1080p'),
             ),
             Positioned(
               right: 14,
               top: 14,
-              child: _VideoPill(label: template.duration),
+              child: _VideoPill(label: widget.length),
             ),
-            const Center(
-              child: CircleAvatar(
-                radius: 30,
-                backgroundColor: Color(0x70000000),
-                child: Icon(
-                  Icons.play_arrow_rounded,
-                  color: Colors.white,
-                  size: 40,
+            if (_showActionOverlay)
+              Center(
+                child: AnimatedOpacity(
+                  opacity: _showActionOverlay ? 1.0 : 0.0,
+                  duration: const Duration(milliseconds: 200),
+                  child: Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.6),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      _overlayIcon,
+                      color: Colors.white,
+                      size: 30,
+                    ),
+                  ),
+                ),
+              )
+            else if (!_isPlaying)
+              Center(
+                child: GestureDetector(
+                  onTap: _togglePlay,
+                  child: const CircleAvatar(
+                    radius: 30,
+                    backgroundColor: Color(0x70000000),
+                    child: Icon(
+                      Icons.play_arrow_rounded,
+                      color: Colors.white,
+                      size: 40,
+                    ),
+                  ),
                 ),
               ),
+            GestureDetector(
+              onTap: _togglePlay,
+              behavior: HitTestBehavior.translucent,
             ),
             Positioned(
               left: 14,
@@ -216,48 +339,66 @@ class _ReadyVideoPlayer extends StatelessWidget {
               bottom: 14,
               child: Row(
                 children: [
-                  const Icon(
-                    Icons.play_arrow_rounded,
-                    color: Colors.white,
-                    size: 26,
+                  GestureDetector(
+                    onTap: _togglePlay,
+                    child: Icon(
+                      _isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                      color: Colors.white,
+                      size: 26,
+                    ),
                   ),
                   const SizedBox(width: 8),
-                  Text('00:00', style: _readyVideoTextStyle()),
+                  Text(_formatDuration(_progress), style: _readyVideoTextStyle()),
                   const SizedBox(width: 10),
                   Expanded(
-                    child: Stack(
-                      alignment: Alignment.centerLeft,
-                      children: [
-                        Container(
-                          height: 4,
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.35),
-                            borderRadius: BorderRadius.circular(4),
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        return GestureDetector(
+                          onHorizontalDragUpdate: (details) {
+                            _seekTo(details.localPosition.dx, constraints.maxWidth);
+                          },
+                          onTapDown: (details) {
+                            _seekTo(details.localPosition.dx, constraints.maxWidth);
+                          },
+                          child: Stack(
+                            alignment: Alignment.centerLeft,
+                            children: [
+                              Container(
+                                height: 4,
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.35),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                              ),
+                              FractionallySizedBox(
+                                widthFactor: _progress,
+                                child: Container(
+                                  height: 4,
+                                  decoration: BoxDecoration(
+                                    color: EditoColors.primary,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                ),
+                              ),
+                              Align(
+                                alignment: Alignment((_progress * 2.0) - 1.0, 0),
+                                child: Container(
+                                  width: 14,
+                                  height: 14,
+                                  decoration: const BoxDecoration(
+                                    color: EditoColors.primary,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                        FractionallySizedBox(
-                          widthFactor: 0.0,
-                          child: Container(
-                            height: 4,
-                            decoration: BoxDecoration(
-                              color: EditoColors.primary,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                          ),
-                        ),
-                        Container(
-                          width: 14,
-                          height: 14,
-                          decoration: const BoxDecoration(
-                            color: EditoColors.primary,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                      ],
+                        );
+                      }
                     ),
                   ),
                   const SizedBox(width: 10),
-                  Text(template.duration, style: _readyVideoTextStyle()),
+                  Text(_formatDuration(1.0), style: _readyVideoTextStyle()),
                   const SizedBox(width: 10),
                   const Icon(
                     Icons.fullscreen_rounded,
@@ -315,24 +456,34 @@ class _VideoPill extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────
 
 class _ReadyInfoCard extends StatelessWidget {
-  const _ReadyInfoCard({required this.template, required this.onEditAgain});
+  const _ReadyInfoCard({
+    required this.template,
+    required this.quality,
+    required this.length,
+    required this.assetsData,
+    required this.onEditAgain,
+  });
 
   final TemplateData template;
+  final String quality;
+  final String length;
+  final Map<String, (String, String)> assetsData;
   final VoidCallback onEditAgain;
 
   @override
   Widget build(BuildContext context) {
+    final customTitle = assetsData['Couple Name']?.$1 ?? assetsData['Title Text']?.$1 ?? template.title;
+    final shortQuality = quality.contains('4K') ? '4K' : quality.contains('720p') ? '720p' : '1080p';
+
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: _readyCardDecoration(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Top row: thumbnail + title + Edit Again button
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Thumbnail
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
                 child: SizedBox(
@@ -350,10 +501,9 @@ class _ReadyInfoCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              // Title — takes all available space
               Expanded(
                 child: Text(
-                  template.title,
+                  customTitle,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.poppins(
@@ -365,7 +515,6 @@ class _ReadyInfoCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 10),
-              // Edit Again button
               Material(
                 color: Colors.transparent,
                 child: InkWell(
@@ -404,7 +553,6 @@ class _ReadyInfoCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          // Date + HD badge
           Row(
             children: [
               const Icon(
@@ -414,7 +562,7 @@ class _ReadyInfoCard extends StatelessWidget {
               ),
               const SizedBox(width: 5),
               Text(
-                'May 20, 2024  •  10:30 AM',
+                'June 6, 2026  •  17:50 PM',
                 style: GoogleFonts.inter(
                   color: EditoColors.body,
                   fontSize: 12,
@@ -422,11 +570,10 @@ class _ReadyInfoCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              const _MiniHdBadge(),
+              _MiniHdBadge(label: shortQuality),
             ],
           ),
           const SizedBox(height: 8),
-          // Creator
           Row(
             children: [
               Flexible(
@@ -456,7 +603,9 @@ class _ReadyInfoCard extends StatelessWidget {
 }
 
 class _MiniHdBadge extends StatelessWidget {
-  const _MiniHdBadge();
+  const _MiniHdBadge({required this.label});
+
+  final String label;
 
   @override
   Widget build(BuildContext context) {
@@ -467,7 +616,7 @@ class _MiniHdBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(4),
       ),
       child: Text(
-        'HD',
+        label,
         style: GoogleFonts.inter(
           color: EditoColors.body,
           fontSize: 10,

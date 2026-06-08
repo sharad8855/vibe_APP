@@ -1,9 +1,175 @@
 part of '../../main.dart';
 
-class PreviewCustomizeScreen extends StatelessWidget {
+class PreviewCustomizeScreen extends StatefulWidget {
   const PreviewCustomizeScreen({super.key, required this.template});
 
   final TemplateData template;
+
+  @override
+  State<PreviewCustomizeScreen> createState() => _PreviewCustomizeScreenState();
+}
+
+class _PreviewCustomizeScreenState extends State<PreviewCustomizeScreen> {
+  late Map<String, (String, String)> _assetsData;
+  
+  String _selectedQuality = '1080p (Full HD)';
+  String _selectedLength = '30 Seconds';
+  String _selectedRatio = '9:16 (Vertical)';
+
+  @override
+  void initState() {
+    super.initState();
+    final isWedding = widget.template.category == 'WEDDING';
+    if (isWedding) {
+      _assetsData = {
+        'Bride Video': ('Bride.mp4', '00:15  •  45 MB'),
+        'Groom Video': ('Groom.mp4', '00:14  •  38 MB'),
+        'Couple Photo': ('Couple.jpg', '1920 x 1280  •  2.4 MB'),
+        'Couple Name': ('Rahul & Priya', 'Font: Poppins SemiBold\nColor: #E91E63'),
+        'Logo (Optional)': ('${widget.template.creator}.png', '512 x 512  •  120 KB'),
+      };
+    } else {
+      final categoryName = _titleCase(widget.template.category);
+      _assetsData = {
+        '$categoryName Video': ('$categoryName.mp4', '00:15  •  45 MB'),
+        'Cover Photo': ('Cover.jpg', '1920 x 1280  •  2.4 MB'),
+        'Title Text': (widget.template.title, 'Font: Poppins SemiBold\nColor: #6C63FF'),
+        'Logo (Optional)': ('${widget.template.creator}.png', '512 x 512  •  120 KB'),
+      };
+    }
+  }
+
+  void _onEditAsset(String title) {
+    if (title.contains('Name') || title.contains('Text')) {
+      final currentVal = _assetsData[title]?.$1 ?? '';
+      showDialog<void>(
+        context: context,
+        builder: (context) {
+          final ctrl = TextEditingController(text: currentVal);
+          return AlertDialog(
+            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: Text(
+              'Edit Text',
+              style: GoogleFonts.poppins(fontWeight: FontWeight.w800, color: EditoColors.dark),
+            ),
+            content: TextField(
+              controller: ctrl,
+              maxLength: 30,
+              style: GoogleFonts.inter(fontWeight: FontWeight.w700),
+              decoration: InputDecoration(
+                hintText: 'Enter title text',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text('Cancel', style: GoogleFonts.inter(color: EditoColors.body, fontWeight: FontWeight.w800)),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  final txt = ctrl.text.trim();
+                  if (txt.isNotEmpty) {
+                    setState(() {
+                      _assetsData[title] = (txt, 'Font: Poppins SemiBold\nColor: ${title.contains('Name') ? '#E91E63' : '#6C63FF'}');
+                    });
+                  }
+                  Navigator.of(context).pop();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: EditoColors.primary,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                child: Text('Save', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w800)),
+              ),
+            ],
+          );
+        },
+      );
+    } else {
+      final randomNum = math.Random().nextInt(89) + 10;
+      setState(() {
+        if (title.contains('Video')) {
+          _assetsData[title] = ('custom_video_$randomNum.mp4', '00:16  •  42.1 MB');
+        } else if (title.contains('Photo')) {
+          _assetsData[title] = ('custom_photo_$randomNum.jpg', '2048 x 1536  •  2.9 MB');
+        } else {
+          _assetsData[title] = ('custom_logo_$randomNum.png', '512 x 512  •  88 KB');
+        }
+      });
+
+      ScaffoldMessenger.of(context).clearSnackBars();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Picked new file for $title!',
+            style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+          ),
+          backgroundColor: const Color(0xFF22B37D),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  void _showSettingsBottomSheet(String title, List<String> options, String currentValue, ValueChanged<String> onSelected) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 12),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                title,
+                style: GoogleFonts.poppins(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: EditoColors.dark,
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Divider(color: EditoColors.border),
+              for (final opt in options)
+                ListTile(
+                  title: Text(
+                    opt,
+                    style: GoogleFonts.inter(
+                      fontWeight: opt == currentValue ? FontWeight.w800 : FontWeight.w600,
+                      color: opt == currentValue ? EditoColors.primary : EditoColors.dark,
+                    ),
+                  ),
+                  trailing: opt == currentValue
+                      ? const Icon(Icons.check_rounded, color: EditoColors.primary)
+                      : null,
+                  onTap: () {
+                    onSelected(opt);
+                    Navigator.of(context).pop();
+                  },
+                ),
+              const SizedBox(height: 12),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -26,15 +192,47 @@ class PreviewCustomizeScreen extends StatelessWidget {
                       const SizedBox(height: 38),
                       const _PreviewIntro(),
                       const SizedBox(height: 20),
-                      _ReviewContentCard(template: template),
+                      _ReviewContentCard(
+                        template: widget.template,
+                        assetsData: _assetsData,
+                        onEditAsset: _onEditAsset,
+                      ),
                       const SizedBox(height: 28),
-                      const _VideoSettingsCard(),
+                      _VideoSettingsCard(
+                        quality: _selectedQuality,
+                        length: _selectedLength,
+                        ratio: _selectedRatio,
+                        onSelectQuality: () => _showSettingsBottomSheet(
+                          'Select Video Quality',
+                          ['720p (HD)', '1080p (Full HD)', '4K (Ultra HD)'],
+                          _selectedQuality,
+                          (val) => setState(() => _selectedQuality = val),
+                        ),
+                        onSelectLength: () => _showSettingsBottomSheet(
+                          'Select Video Length',
+                          ['15 Seconds', '30 Seconds', '45 Seconds', '60 Seconds'],
+                          _selectedLength,
+                          (val) => setState(() => _selectedLength = val),
+                        ),
+                        onSelectRatio: () => _showSettingsBottomSheet(
+                          'Select Aspect Ratio',
+                          ['9:16 (Vertical)', '16:9 (Horizontal)', '1:1 (Square)'],
+                          _selectedRatio,
+                          (val) => setState(() => _selectedRatio = val),
+                        ),
+                      ),
                       const SizedBox(height: 22),
                       const _AiMagicCard(),
                       const SizedBox(height: 48),
                       const _SecureDataNote(),
                       const SizedBox(height: 27),
-                      _GenerateVideoButton(template: template),
+                      _GenerateVideoButton(
+                        template: widget.template,
+                        assetsData: _assetsData,
+                        quality: _selectedQuality,
+                        length: _selectedLength,
+                        ratio: _selectedRatio,
+                      ),
                       const SizedBox(height: 24),
                     ],
                   ),
@@ -261,9 +459,15 @@ class _PreviewIntro extends StatelessWidget {
 }
 
 class _ReviewContentCard extends StatelessWidget {
-  const _ReviewContentCard({required this.template});
+  const _ReviewContentCard({
+    required this.template,
+    required this.assetsData,
+    required this.onEditAsset,
+  });
 
   final TemplateData template;
+  final Map<String, (String, String)> assetsData;
+  final ValueChanged<String> onEditAsset;
 
   @override
   Widget build(BuildContext context) {
@@ -272,8 +476,8 @@ class _ReviewContentCard extends StatelessWidget {
             _ReviewAssetData(
               icon: Icons.videocam_outlined,
               title: 'Bride Video',
-              filename: 'Bride.mp4',
-              meta: '00:15  •  45 MB',
+              filename: assetsData['Bride Video']?.$1 ?? 'Bride.mp4',
+              meta: assetsData['Bride Video']?.$2 ?? '00:15  •  45 MB',
               color: EditoColors.primary,
               tint: const Color(0xFFF1ECFF),
               template: template,
@@ -281,8 +485,8 @@ class _ReviewContentCard extends StatelessWidget {
             _ReviewAssetData(
               icon: Icons.videocam_outlined,
               title: 'Groom Video',
-              filename: 'Groom.mp4',
-              meta: '00:14  •  38 MB',
+              filename: assetsData['Groom Video']?.$1 ?? 'Groom.mp4',
+              meta: assetsData['Groom Video']?.$2 ?? '00:14  •  38 MB',
               color: EditoColors.primary,
               tint: const Color(0xFFF1ECFF),
               template: template,
@@ -291,26 +495,26 @@ class _ReviewContentCard extends StatelessWidget {
             _ReviewAssetData(
               icon: Icons.image_outlined,
               title: 'Couple Photo',
-              filename: 'Couple.jpg',
-              meta: '1920 x 1280  •  2.4 MB',
+              filename: assetsData['Couple Photo']?.$1 ?? 'Couple.jpg',
+              meta: assetsData['Couple Photo']?.$2 ?? '1920 x 1280  •  2.4 MB',
               color: const Color(0xFF22B37D),
               tint: const Color(0xFFE8F8EF),
               template: template,
             ),
-            const _ReviewAssetData(
+            _ReviewAssetData(
               icon: Icons.text_fields_rounded,
               title: 'Couple Name',
-              filename: 'Rahul & Priya',
-              meta: 'Font: Poppins SemiBold\nColor: #E91E63',
-              color: Color(0xFF3478F6),
-              tint: Color(0xFFEAF3FF),
+              filename: assetsData['Couple Name']?.$1 ?? 'Rahul & Priya',
+              meta: assetsData['Couple Name']?.$2 ?? 'Font: Poppins SemiBold\nColor: #E91E63',
+              color: const Color(0xFF3478F6),
+              tint: const Color(0xFFEAF3FF),
               textOnly: true,
             ),
             _ReviewAssetData(
               icon: Icons.verified_outlined,
               title: 'Logo (Optional)',
-              filename: '${template.creator}.png',
-              meta: '512 x 512  •  120 KB',
+              filename: assetsData['Logo (Optional)']?.$1 ?? '${template.creator}.png',
+              meta: assetsData['Logo (Optional)']?.$2 ?? '512 x 512  •  120 KB',
               color: const Color(0xFFFF9800),
               tint: const Color(0xFFFFF2DE),
               logo: true,
@@ -320,8 +524,8 @@ class _ReviewContentCard extends StatelessWidget {
             _ReviewAssetData(
               icon: Icons.videocam_outlined,
               title: '${_titleCase(template.category)} Video',
-              filename: '${_titleCase(template.category)}.mp4',
-              meta: '00:15  •  45 MB',
+              filename: assetsData['${_titleCase(template.category)} Video']?.$1 ?? '${_titleCase(template.category)}.mp4',
+              meta: assetsData['${_titleCase(template.category)} Video']?.$2 ?? '00:15  •  45 MB',
               color: EditoColors.primary,
               tint: const Color(0xFFF1ECFF),
               template: template,
@@ -329,8 +533,8 @@ class _ReviewContentCard extends StatelessWidget {
             _ReviewAssetData(
               icon: Icons.image_outlined,
               title: 'Cover Photo',
-              filename: 'Cover.jpg',
-              meta: '1920 x 1280  •  2.4 MB',
+              filename: assetsData['Cover Photo']?.$1 ?? 'Cover.jpg',
+              meta: assetsData['Cover Photo']?.$2 ?? '1920 x 1280  •  2.4 MB',
               color: const Color(0xFF22B37D),
               tint: const Color(0xFFE8F8EF),
               template: template,
@@ -338,8 +542,8 @@ class _ReviewContentCard extends StatelessWidget {
             _ReviewAssetData(
               icon: Icons.text_fields_rounded,
               title: 'Title Text',
-              filename: template.title,
-              meta: 'Font: Poppins SemiBold\nColor: #6C63FF',
+              filename: assetsData['Title Text']?.$1 ?? template.title,
+              meta: assetsData['Title Text']?.$2 ?? 'Font: Poppins SemiBold\nColor: #6C63FF',
               color: const Color(0xFF3478F6),
               tint: const Color(0xFFEAF3FF),
               textOnly: true,
@@ -347,8 +551,8 @@ class _ReviewContentCard extends StatelessWidget {
             _ReviewAssetData(
               icon: Icons.verified_outlined,
               title: 'Logo (Optional)',
-              filename: '${template.creator}.png',
-              meta: '512 x 512  •  120 KB',
+              filename: assetsData['Logo (Optional)']?.$1 ?? '${template.creator}.png',
+              meta: assetsData['Logo (Optional)']?.$2 ?? '512 x 512  •  120 KB',
               color: const Color(0xFFFF9800),
               tint: const Color(0xFFFFF2DE),
               logo: true,
@@ -372,7 +576,10 @@ class _ReviewContentCard extends StatelessWidget {
         child: Column(
           children: [
             for (var i = 0; i < rows.length; i++) ...[
-              _ReviewContentRow(data: rows[i]),
+              _ReviewContentRow(
+                data: rows[i],
+                onEdit: () => onEditAsset(rows[i].title),
+              ),
               if (i != rows.length - 1)
                 const Divider(height: 1, color: EditoColors.border),
             ],
@@ -384,9 +591,10 @@ class _ReviewContentCard extends StatelessWidget {
 }
 
 class _ReviewContentRow extends StatelessWidget {
-  const _ReviewContentRow({required this.data});
+  const _ReviewContentRow({required this.data, required this.onEdit});
 
   final _ReviewAssetData data;
+  final VoidCallback onEdit;
 
   @override
   Widget build(BuildContext context) {
@@ -455,40 +663,39 @@ class _ReviewContentRow extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         if (constraints.maxWidth < 560) {
-          return SizedBox(
-            height: 176,
-            child: Padding(
-              padding: const EdgeInsets.all(14),
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      icon,
-                      const SizedBox(width: 12),
-                      Expanded(child: title),
-                      const SizedBox(width: 8),
-                      const _EditAssetButton(),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Expanded(
-                    child: Row(
-                      children: [
-                        previewBox(104, 76),
-                        const SizedBox(width: 12),
-                        Expanded(child: details),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+          return Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    icon,
+                    const SizedBox(width: 12),
+                    Expanded(child: title),
+                    const SizedBox(width: 8),
+                    _EditAssetButton(onTap: onEdit),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    previewBox(104, 76),
+                    const SizedBox(width: 12),
+                    Expanded(child: details),
+                  ],
+                ),
+              ],
             ),
           );
         }
 
-        return SizedBox(
-          height: 122,
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 14),
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const SizedBox(width: 18),
               icon,
@@ -499,7 +706,7 @@ class _ReviewContentRow extends StatelessWidget {
               const SizedBox(width: 20),
               Expanded(child: details),
               const SizedBox(width: 12),
-              const _EditAssetButton(),
+              _EditAssetButton(onTap: onEdit),
               const SizedBox(width: 20),
             ],
           ),
@@ -592,39 +799,58 @@ class _LogoPreview extends StatelessWidget {
 }
 
 class _EditAssetButton extends StatelessWidget {
-  const _EditAssetButton();
+  const _EditAssetButton({required this.onTap});
+
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 46,
-      width: 99,
-      decoration: BoxDecoration(
-        color: const Color(0xFFFAFAFD),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: EditoColors.border),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.edit_outlined, color: EditoColors.primary, size: 19),
-          const SizedBox(width: 9),
-          Text(
-            'Edit',
-            style: GoogleFonts.inter(
-              color: EditoColors.primary,
-              fontSize: 14,
-              fontWeight: FontWeight.w900,
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 46,
+        width: 99,
+        decoration: BoxDecoration(
+          color: const Color(0xFFFAFAFD),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: EditoColors.border),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.edit_outlined, color: EditoColors.primary, size: 19),
+            const SizedBox(width: 9),
+            Text(
+              'Edit',
+              style: GoogleFonts.inter(
+                color: EditoColors.primary,
+                fontSize: 14,
+                fontWeight: FontWeight.w900,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 }
 
 class _VideoSettingsCard extends StatelessWidget {
-  const _VideoSettingsCard();
+  const _VideoSettingsCard({
+    required this.quality,
+    required this.length,
+    required this.ratio,
+    required this.onSelectQuality,
+    required this.onSelectLength,
+    required this.onSelectRatio,
+  });
+
+  final String quality;
+  final String length;
+  final String ratio;
+  final VoidCallback onSelectQuality;
+  final VoidCallback onSelectLength;
+  final VoidCallback onSelectRatio;
 
   @override
   Widget build(BuildContext context) {
@@ -691,26 +917,29 @@ class _VideoSettingsCard extends StatelessWidget {
           ),
           const SizedBox(height: 28),
           Row(
-            children: const [
+            children: [
               Expanded(
                 child: _SettingSelect(
                   label: 'Video Quality',
-                  value: '1080p (Full HD)',
+                  value: quality,
+                  onTap: onSelectQuality,
                 ),
               ),
-              SizedBox(width: 25),
+              const SizedBox(width: 12),
               Expanded(
                 child: _SettingSelect(
                   label: 'Video Length',
-                  value: '30 Seconds',
+                  value: length,
+                  onTap: onSelectLength,
                 ),
               ),
-              SizedBox(width: 25),
+              const SizedBox(width: 12),
               Expanded(
                 child: _SettingSelect(
                   label: 'Aspect Ratio',
-                  value: '9:16 (Vertical)',
+                  value: ratio,
                   active: true,
+                  onTap: onSelectRatio,
                 ),
               ),
             ],
@@ -725,11 +954,13 @@ class _SettingSelect extends StatelessWidget {
   const _SettingSelect({
     required this.label,
     required this.value,
+    required this.onTap,
     this.active = false,
   });
 
   final String label;
   final String value;
+  final VoidCallback onTap;
   final bool active;
 
   @override
@@ -737,45 +968,53 @@ class _SettingSelect extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: GoogleFonts.inter(
-            color: EditoColors.dark,
-            fontSize: 13,
-            fontWeight: FontWeight.w900,
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            label,
+            style: GoogleFonts.inter(
+              color: EditoColors.dark,
+              fontSize: 13,
+              fontWeight: FontWeight.w900,
+            ),
           ),
         ),
         const SizedBox(height: 11),
-        Container(
-          height: 58,
-          padding: const EdgeInsets.symmetric(horizontal: 17),
-          decoration: BoxDecoration(
-            color: const Color(0xFFFAFAFD),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: active ? const Color(0xFFD8C8FF) : EditoColors.border,
+        GestureDetector(
+          onTap: onTap,
+          child: Container(
+            height: 58,
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFAFAFD),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: active ? const Color(0xFFD8C8FF) : EditoColors.border,
+              ),
             ),
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  value,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.inter(
-                    color: active ? EditoColors.primary : EditoColors.dark,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
+            child: Row(
+              children: [
+                Expanded(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      value,
+                      style: GoogleFonts.inter(
+                        color: active ? EditoColors.primary : EditoColors.dark,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
                   ),
                 ),
-              ),
-              Icon(
-                Icons.keyboard_arrow_down_rounded,
-                color: active ? EditoColors.primary : EditoColors.dark,
-                size: 25,
-              ),
-            ],
+                Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  color: active ? EditoColors.primary : EditoColors.dark,
+                  size: 20,
+                ),
+              ],
+            ),
           ),
         ),
       ],
@@ -840,9 +1079,19 @@ class _AiMagicCard extends StatelessWidget {
 }
 
 class _GenerateVideoButton extends StatelessWidget {
-  const _GenerateVideoButton({required this.template});
+  const _GenerateVideoButton({
+    required this.template,
+    required this.assetsData,
+    required this.quality,
+    required this.length,
+    required this.ratio,
+  });
 
   final TemplateData template;
+  final Map<String, (String, String)> assetsData;
+  final String quality;
+  final String length;
+  final String ratio;
 
   @override
   Widget build(BuildContext context) {
@@ -853,7 +1102,13 @@ class _GenerateVideoButton extends StatelessWidget {
         onTap: () {
           Navigator.of(context).push(
             MaterialPageRoute<void>(
-              builder: (_) => PreviewTemplateScreen(template: template),
+              builder: (_) => PreviewTemplateScreen(
+                template: template,
+                assetsData: assetsData,
+                quality: quality,
+                length: length,
+                ratio: ratio,
+              ),
             ),
           );
         },

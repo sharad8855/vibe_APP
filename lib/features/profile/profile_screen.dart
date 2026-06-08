@@ -16,37 +16,44 @@ class ProfileScreen extends StatelessWidget {
         const SizedBox(height: 28),
         const _ProfileSectionTitle('Creator Tools'),
         const SizedBox(height: 10),
-        const _ProfileMenuGroup(
+        _ProfileMenuGroup(
           items: [
             _ProfileMenuData(
               icon: Icons.add_rounded,
               title: 'Create Template',
               subtitle: 'Edit a video and publish it as a template',
               color: EditoColors.primary,
-              tint: Color(0xFFE6DBFF),
+              tint: const Color(0xFFE6DBFF),
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const CreateTemplateScreen(),
+                  ),
+                );
+              },
             ),
-            _ProfileMenuData(
+            const _ProfileMenuData(
               icon: Icons.folder_rounded,
               title: 'My Templates',
               subtitle: 'View and manage your published templates',
               color: EditoColors.primary,
               tint: Color(0xFFDCD3FF),
             ),
-            _ProfileMenuData(
+            const _ProfileMenuData(
               icon: Icons.bar_chart_rounded,
               title: 'Earnings',
               subtitle: 'Track your earnings and withdrawals',
               color: Color(0xFF22B37D),
               tint: Color(0xFFA9EBCF),
             ),
-            _ProfileMenuData(
+            const _ProfileMenuData(
               icon: Icons.shopping_bag_outlined,
               title: 'Purchases',
               subtitle: 'View your purchased templates',
               color: EditoColors.accent,
               tint: Color(0xFFFFD8E1),
             ),
-            _ProfileMenuData(
+            const _ProfileMenuData(
               icon: Icons.bookmark_rounded,
               title: 'Saved Templates',
               subtitle: 'Templates you saved for later',

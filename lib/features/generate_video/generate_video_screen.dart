@@ -1,9 +1,60 @@
 part of '../../main.dart';
 
-class GenerateVideoScreen extends StatelessWidget {
-  const GenerateVideoScreen({super.key, required this.template});
+class GenerateVideoScreen extends StatefulWidget {
+  const GenerateVideoScreen({
+    super.key,
+    required this.template,
+    required this.assetsData,
+    required this.quality,
+    required this.length,
+    required this.ratio,
+  });
 
   final TemplateData template;
+  final Map<String, (String, String)> assetsData;
+  final String quality;
+  final String length;
+  final String ratio;
+
+  @override
+  State<GenerateVideoScreen> createState() => _GenerateVideoScreenState();
+}
+
+class _GenerateVideoScreenState extends State<GenerateVideoScreen> {
+  Timer? _ticker;
+  double _progress = 0.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _ticker = Timer.periodic(const Duration(milliseconds: 40), (timer) {
+      if (!mounted) return;
+      setState(() {
+        _progress += 0.01;
+        if (_progress >= 1.0) {
+          _progress = 1.0;
+          _ticker?.cancel();
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute<void>(
+              builder: (_) => VideoReadyScreen(
+                template: widget.template,
+                assetsData: widget.assetsData,
+                quality: widget.quality,
+                length: widget.length,
+                ratio: widget.ratio,
+              ),
+            ),
+          );
+        }
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _ticker?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -22,17 +73,23 @@ class GenerateVideoScreen extends StatelessWidget {
                     children: [
                       const _GenerateHeader(),
                       const SizedBox(height: 36),
-                      _GenerationPreview(template: template),
+                      _GenerationPreview(template: widget.template, progress: _progress),
                       const SizedBox(height: 40),
-                      const _GenerationSteps(),
+                      _GenerationSteps(progress: _progress),
                       const SizedBox(height: 32),
                       const _GenerationMagicCard(),
                       const SizedBox(height: 24),
-                      const _GenerationTaskCard(),
+                      _GenerationTaskCard(progress: _progress),
                       const SizedBox(height: 24),
                       const _GenerationInfoCard(),
                       const SizedBox(height: 22),
-                      _DoNotCloseCard(template: template),
+                      _DoNotCloseCard(
+                        template: widget.template,
+                        assetsData: widget.assetsData,
+                        quality: widget.quality,
+                        length: widget.length,
+                        ratio: widget.ratio,
+                      ),
                       const SizedBox(height: 24),
                     ],
                   ),
@@ -105,9 +162,10 @@ class _GenerateHeader extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────
 
 class _GenerationPreview extends StatelessWidget {
-  const _GenerationPreview({required this.template});
+  const _GenerationPreview({required this.template, required this.progress});
 
   final TemplateData template;
+  final double progress;
 
   @override
   Widget build(BuildContext context) {
@@ -142,7 +200,7 @@ class _GenerationPreview extends StatelessWidget {
                   alignment: Alignment.center,
                   children: [
                     CircularProgressIndicator(
-                      value: 0.65,
+                      value: progress,
                       strokeWidth: 11,
                       backgroundColor: Colors.white.withValues(alpha: 0.78),
                       color: EditoColors.primary,
@@ -151,7 +209,7 @@ class _GenerationPreview extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          '65%',
+                          '${(progress * 100).toInt()}%',
                           style: GoogleFonts.poppins(
                             color: Colors.white,
                             fontSize: 32,
@@ -159,7 +217,7 @@ class _GenerationPreview extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          'Generating...',
+                          progress >= 1.0 ? 'Done!' : 'Generating...',
                           style: GoogleFonts.inter(
                             color: Colors.white,
                             fontSize: 13,
@@ -221,43 +279,67 @@ class _Sparkle extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────
 
 class _GenerationSteps extends StatelessWidget {
-  const _GenerationSteps();
+  const _GenerationSteps({required this.progress});
+
+  final double progress;
 
   @override
   Widget build(BuildContext context) {
+    final step1Complete = progress > 0.25;
+    final step1Active = progress <= 0.25;
+
+    final step2Complete = progress > 0.50;
+    final step2Active = progress > 0.25 && progress <= 0.50;
+
+    final step3Complete = progress > 0.75;
+    final step3Active = progress > 0.50 && progress <= 0.75;
+
+    final step4Complete = progress >= 1.0;
+    final step4Active = progress > 0.75 && progress < 1.0;
+
     return Row(
-      children: const [
+      children: [
         Expanded(
           child: _GenerationStep(
-            icon: Icons.check_rounded,
+            icon: step1Complete ? Icons.check_rounded : null,
+            number: step1Complete ? null : '1',
             title: 'Preparing',
-            subtitle: 'Done',
-            complete: true,
+            subtitle: step1Complete ? 'Done' : 'In Progress',
+            active: step1Active,
+            complete: step1Complete,
           ),
         ),
-        _GenerationLine(active: true),
+        _GenerationLine(active: progress > 0.25),
         Expanded(
           child: _GenerationStep(
-            number: '2',
+            icon: step2Complete ? Icons.check_rounded : null,
+            number: step2Complete ? null : '2',
             title: 'Effects',
-            subtitle: 'In Progress',
-            active: true,
+            subtitle: step2Complete ? 'Done' : step2Active ? 'In Progress' : 'Pending',
+            active: step2Active,
+            complete: step2Complete,
           ),
         ),
-        _GenerationLine(),
+        _GenerationLine(active: progress > 0.50),
         Expanded(
           child: _GenerationStep(
-            number: '3',
+            icon: step3Complete ? Icons.check_rounded : null,
+            number: step3Complete ? null : '3',
             title: 'Rendering',
-            subtitle: 'Pending',
+            subtitle: step3Complete ? 'Done' : step3Active ? 'In Progress' : 'Pending',
+            active: step3Active,
+            complete: step3Complete,
           ),
         ),
-        _GenerationLine(),
+        _GenerationLine(active: progress > 0.75),
         Expanded(
           child: _GenerationStep(
-            number: '4',
+            icon: step4Complete ? Icons.check_rounded : null,
+            number: step4Complete ? null : '4',
             title: 'Finalizing',
-            subtitle: 'Pending',
+            subtitle: step4Complete ? 'Done' : step4Active ? 'In Progress' : 'Pending',
+            active: step4Active,
+            complete: step4Complete,
           ),
         ),
       ],
@@ -417,40 +499,53 @@ class _GenerationMagicCard extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────
 
 class _GenerationTaskCard extends StatelessWidget {
-  const _GenerationTaskCard();
+  const _GenerationTaskCard({required this.progress});
 
-  static const tasks = [
-    _GenerationTaskData(
-      icon: Icons.video_collection_outlined,
-      title: 'Preparing Your Assets',
-      subtitle: 'Checking videos, images and text',
-      status: _TaskStatus.done,
-    ),
-    _GenerationTaskData(
-      icon: Icons.auto_fix_high_rounded,
-      title: 'Applying Effects & Transitions',
-      subtitle: 'Adding effects and smooth transitions',
-      status: _TaskStatus.loading,
-    ),
-    _GenerationTaskData(
-      icon: Icons.music_note_rounded,
-      title: 'Adding Music',
-      subtitle: 'Syncing background music',
-    ),
-    _GenerationTaskData(
-      icon: Icons.hd_outlined,
-      title: 'Rendering Video',
-      subtitle: 'Rendering in 1080p quality',
-    ),
-    _GenerationTaskData(
-      icon: Icons.ios_share_rounded,
-      title: 'Finalizing',
-      subtitle: 'Optimizing and preparing video',
-    ),
-  ];
+  final double progress;
 
   @override
   Widget build(BuildContext context) {
+    final tasks = [
+      _GenerationTaskData(
+        icon: Icons.video_collection_outlined,
+        title: 'Preparing Your Assets',
+        subtitle: 'Checking videos, images and text',
+        status: progress >= 0.20 ? _TaskStatus.done : _TaskStatus.loading,
+      ),
+      _GenerationTaskData(
+        icon: Icons.auto_fix_high_rounded,
+        title: 'Applying Effects & Transitions',
+        subtitle: 'Adding effects and smooth transitions',
+        status: progress >= 0.45 
+            ? _TaskStatus.done 
+            : (progress >= 0.20 ? _TaskStatus.loading : _TaskStatus.pending),
+      ),
+      _GenerationTaskData(
+        icon: Icons.music_note_rounded,
+        title: 'Adding Music',
+        subtitle: 'Syncing background music',
+        status: progress >= 0.70 
+            ? _TaskStatus.done 
+            : (progress >= 0.45 ? _TaskStatus.loading : _TaskStatus.pending),
+      ),
+      _GenerationTaskData(
+        icon: Icons.hd_outlined,
+        title: 'Rendering Video',
+        subtitle: 'Rendering in 1080p quality',
+        status: progress >= 0.90 
+            ? _TaskStatus.done 
+            : (progress >= 0.70 ? _TaskStatus.loading : _TaskStatus.pending),
+      ),
+      _GenerationTaskData(
+        icon: Icons.ios_share_rounded,
+        title: 'Finalizing',
+        subtitle: 'Optimizing and preparing video',
+        status: progress >= 1.0 
+            ? _TaskStatus.done 
+            : (progress >= 0.90 ? _TaskStatus.loading : _TaskStatus.pending),
+      ),
+    ];
+
     return Container(
       decoration: BoxDecoration(
         color: EditoColors.white.withValues(alpha: 0.90),
@@ -668,9 +763,19 @@ class _GenerationInfoCard extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────
 
 class _DoNotCloseCard extends StatelessWidget {
-  const _DoNotCloseCard({required this.template});
+  const _DoNotCloseCard({
+    required this.template,
+    required this.assetsData,
+    required this.quality,
+    required this.length,
+    required this.ratio,
+  });
 
   final TemplateData template;
+  final Map<String, (String, String)> assetsData;
+  final String quality;
+  final String length;
+  final String ratio;
 
   @override
   Widget build(BuildContext context) {
@@ -681,7 +786,13 @@ class _DoNotCloseCard extends StatelessWidget {
         onTap: () {
           Navigator.of(context).push(
             MaterialPageRoute<void>(
-              builder: (_) => VideoReadyScreen(template: template),
+              builder: (_) => VideoReadyScreen(
+                template: template,
+                assetsData: assetsData,
+                quality: quality,
+                length: length,
+                ratio: ratio,
+              ),
             ),
           );
         },

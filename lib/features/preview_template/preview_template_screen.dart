@@ -1,11 +1,41 @@
 part of '../../main.dart';
 
-class PreviewTemplateScreen extends StatelessWidget {
-  const PreviewTemplateScreen({super.key, required this.template});
+class PreviewTemplateScreen extends StatefulWidget {
+  const PreviewTemplateScreen({
+    super.key,
+    required this.template,
+    required this.assetsData,
+    required this.quality,
+    required this.length,
+    required this.ratio,
+  });
 
   final TemplateData template;
+  final Map<String, (String, String)> assetsData;
+  final String quality;
+  final String length;
+  final String ratio;
 
-  void _showAction(BuildContext context, String message) {
+  @override
+  State<PreviewTemplateScreen> createState() => _PreviewTemplateScreenState();
+}
+
+class _PreviewTemplateScreenState extends State<PreviewTemplateScreen> {
+  late Map<String, (String, String)> _assetsData;
+  late String _selectedQuality;
+  late String _selectedLength;
+  late String _selectedRatio;
+
+  @override
+  void initState() {
+    super.initState();
+    _assetsData = Map.from(widget.assetsData);
+    _selectedQuality = widget.quality;
+    _selectedLength = widget.length;
+    _selectedRatio = widget.ratio;
+  }
+
+  void _showAction(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
@@ -13,6 +43,81 @@ class PreviewTemplateScreen extends StatelessWidget {
         duration: const Duration(seconds: 1),
       ),
     );
+  }
+
+  void _onEditAsset(String title) {
+    if (title.contains('Name') || title.contains('Text')) {
+      final currentVal = _assetsData[title]?.$1 ?? '';
+      showDialog<void>(
+        context: context,
+        builder: (context) {
+          final ctrl = TextEditingController(text: currentVal);
+          return AlertDialog(
+            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: Text(
+              'Edit Text',
+              style: GoogleFonts.poppins(fontWeight: FontWeight.w800, color: EditoColors.dark),
+            ),
+            content: TextField(
+              controller: ctrl,
+              maxLength: 30,
+              style: GoogleFonts.inter(fontWeight: FontWeight.w700),
+              decoration: InputDecoration(
+                hintText: 'Enter title text',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text('Cancel', style: GoogleFonts.inter(color: EditoColors.body, fontWeight: FontWeight.w800)),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  final txt = ctrl.text.trim();
+                  if (txt.isNotEmpty) {
+                    setState(() {
+                      _assetsData[title] = (txt, 'Font: Poppins SemiBold\nColor: ${title.contains('Name') ? '#E91E63' : '#6C63FF'}');
+                    });
+                  }
+                  Navigator.of(context).pop();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: EditoColors.primary,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                child: Text('Save', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w800)),
+              ),
+            ],
+          );
+        },
+      );
+    } else {
+      final randomNum = math.Random().nextInt(89) + 10;
+      setState(() {
+        if (title.contains('Video')) {
+          _assetsData[title] = ('custom_video_$randomNum.mp4', '00:16  •  42.1 MB');
+        } else if (title.contains('Photo') || title.contains('Cover')) {
+          _assetsData[title] = ('custom_photo_$randomNum.jpg', '2048 x 1536  •  2.9 MB');
+        } else {
+          _assetsData[title] = ('custom_logo_$randomNum.png', '512 x 512  •  88 KB');
+        }
+      });
+
+      ScaffoldMessenger.of(context).clearSnackBars();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Picked new file for $title!',
+            style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+          ),
+          backgroundColor: const Color(0xFF22B37D),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   @override
@@ -32,21 +137,24 @@ class PreviewTemplateScreen extends StatelessWidget {
                     children: [
                       _PreviewTemplateHeader(
                         onDemo: () =>
-                            _showAction(context, 'Demo preview opened'),
+                            _showAction('Demo preview opened'),
                       ),
                       const SizedBox(height: 26),
-                      _PreviewTemplatePlayer(template: template),
+                      _PreviewTemplatePlayer(
+                        template: widget.template,
+                        selectedLength: _selectedLength,
+                      ),
                       const SizedBox(height: 20),
                       const _TemplateTimeline(),
                       const SizedBox(height: 32),
-                      _SceneBreakdown(template: template),
+                      _SceneBreakdown(template: widget.template),
                       const SizedBox(height: 30),
                       LayoutBuilder(
                         builder: (context, constraints) {
                           final flow = _TemplateFlowCard(
-                            template: template,
-                            onEdit: () =>
-                                _showAction(context, 'Edit asset opened'),
+                            template: widget.template,
+                            assetsData: _assetsData,
+                            onEdit: _onEditAsset,
                           );
 
                           if (constraints.maxWidth < 620) {
@@ -70,9 +178,19 @@ class PreviewTemplateScreen extends StatelessWidget {
                         },
                       ),
                       const SizedBox(height: 30),
-                      const _OutputInfoCard(),
+                      _OutputInfoCard(
+                        quality: _selectedQuality,
+                        length: _selectedLength,
+                        ratio: _selectedRatio,
+                      ),
                       const SizedBox(height: 28),
-                      _GenerateFinalButton(template: template),
+                      _GenerateFinalButton(
+                        template: widget.template,
+                        assetsData: _assetsData,
+                        quality: _selectedQuality,
+                        length: _selectedLength,
+                        ratio: _selectedRatio,
+                      ),
                       const SizedBox(height: 12),
                       FittedBox(
                         fit: BoxFit.scaleDown,
@@ -195,10 +313,85 @@ class _PreviewTemplateHeader extends StatelessWidget {
   }
 }
 
-class _PreviewTemplatePlayer extends StatelessWidget {
-  const _PreviewTemplatePlayer({required this.template});
+class _PreviewTemplatePlayer extends StatefulWidget {
+  const _PreviewTemplatePlayer({required this.template, required this.selectedLength});
 
   final TemplateData template;
+  final String selectedLength;
+
+  @override
+  State<_PreviewTemplatePlayer> createState() => _PreviewTemplatePlayerState();
+}
+
+class _PreviewTemplatePlayerState extends State<_PreviewTemplatePlayer> {
+  Timer? _playbackTimer;
+  double _progress = 0.0;
+  bool _isPlaying = false;
+  bool _showActionOverlay = false;
+  IconData _overlayIcon = Icons.play_arrow_rounded;
+
+  int get _totalSeconds {
+    final numericOnly = RegExp(r'\d+').firstMatch(widget.selectedLength)?.group(0);
+    if (numericOnly != null) {
+      return int.tryParse(numericOnly) ?? 30;
+    }
+    return 30;
+  }
+
+  @override
+  void dispose() {
+    _playbackTimer?.cancel();
+    super.dispose();
+  }
+
+  void _togglePlay() {
+    setState(() {
+      _isPlaying = !_isPlaying;
+      _overlayIcon = _isPlaying ? Icons.play_arrow_rounded : Icons.pause_rounded;
+      _showActionOverlay = true;
+      if (_isPlaying) {
+        _startTimer();
+      } else {
+        _playbackTimer?.cancel();
+      }
+    });
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (mounted) {
+        setState(() {
+          _showActionOverlay = false;
+        });
+      }
+    });
+  }
+
+  void _startTimer() {
+    _playbackTimer?.cancel();
+    _playbackTimer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
+      if (!mounted) return;
+      setState(() {
+        _progress += 0.1 / _totalSeconds;
+        if (_progress >= 1.0) {
+          _progress = 0.0; // Loop
+        }
+      });
+    });
+  }
+
+  String _formatDuration(double factor) {
+    final total = _totalSeconds;
+    final current = (factor * total).round();
+    final mins = current ~/ 60;
+    final secs = current % 60;
+    return '${mins.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
+  }
+
+  void _seekTo(double localX, double totalWidth) {
+    if (totalWidth <= 0) return;
+    final newProgress = (localX / totalWidth).clamp(0.0, 1.0);
+    setState(() {
+      _progress = newProgress;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -209,8 +402,15 @@ class _PreviewTemplatePlayer extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            _TemplateVisual(data: template),
-            CustomPaint(painter: _DetailHeroOverlayPainter(template)),
+            _TemplateVisual(data: widget.template),
+            if (_isPlaying)
+              Positioned.fill(
+                child: _VideoPlayerRippleAnimation(
+                  progress: _progress,
+                  color: widget.template.color,
+                ),
+              ),
+            CustomPaint(painter: _DetailHeroOverlayPainter(widget.template)),
             DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
@@ -234,18 +434,46 @@ class _PreviewTemplatePlayer extends StatelessWidget {
             Positioned(
               right: 17,
               top: 17,
-              child: _PreviewVideoBadge(label: template.duration),
+              child: _PreviewVideoBadge(label: widget.template.duration),
             ),
-            const Center(
-              child: CircleAvatar(
-                radius: 39,
-                backgroundColor: Color(0x65000000),
-                child: Icon(
-                  Icons.play_arrow_rounded,
-                  color: Colors.white,
-                  size: 54,
+            if (_showActionOverlay)
+              Center(
+                child: AnimatedOpacity(
+                  opacity: _showActionOverlay ? 1.0 : 0.0,
+                  duration: const Duration(milliseconds: 200),
+                  child: Container(
+                    width: 70,
+                    height: 70,
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.6),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      _overlayIcon,
+                      color: Colors.white,
+                      size: 40,
+                    ),
+                  ),
+                ),
+              )
+            else if (!_isPlaying)
+              Center(
+                child: GestureDetector(
+                  onTap: _togglePlay,
+                  child: const CircleAvatar(
+                    radius: 39,
+                    backgroundColor: Color(0x65000000),
+                    child: Icon(
+                      Icons.play_arrow_rounded,
+                      color: Colors.white,
+                      size: 54,
+                    ),
+                  ),
                 ),
               ),
+            GestureDetector(
+              onTap: _togglePlay,
+              behavior: HitTestBehavior.translucent,
             ),
             Positioned(
               left: 21,
@@ -253,50 +481,65 @@ class _PreviewTemplatePlayer extends StatelessWidget {
               bottom: 20,
               child: Row(
                 children: [
-                  const Icon(
-                    Icons.play_arrow_rounded,
-                    color: Colors.white,
-                    size: 31,
+                  GestureDetector(
+                    onTap: _togglePlay,
+                    child: Icon(
+                      _isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                      color: Colors.white,
+                      size: 31,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Text(
-                    '00:08 / ${template.duration}',
+                    '${_formatDuration(_progress)} / ${_formatDuration(1.0)}',
                     style: _previewVideoText(),
                   ),
                   const SizedBox(width: 17),
                   Expanded(
-                    child: Stack(
-                      alignment: Alignment.centerLeft,
-                      children: [
-                        Container(
-                          height: 4,
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.40),
-                            borderRadius: BorderRadius.circular(4),
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        return GestureDetector(
+                          onHorizontalDragUpdate: (details) {
+                            _seekTo(details.localPosition.dx, constraints.maxWidth);
+                          },
+                          onTapDown: (details) {
+                            _seekTo(details.localPosition.dx, constraints.maxWidth);
+                          },
+                          child: Stack(
+                            alignment: Alignment.centerLeft,
+                            children: [
+                              Container(
+                                height: 4,
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.40),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                              ),
+                              FractionallySizedBox(
+                                widthFactor: _progress,
+                                child: Container(
+                                  height: 4,
+                                  decoration: BoxDecoration(
+                                    color: EditoColors.primary,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                ),
+                              ),
+                              Align(
+                                alignment: Alignment((_progress * 2.0) - 1.0, 0),
+                                child: Container(
+                                  width: 16,
+                                  height: 16,
+                                  decoration: const BoxDecoration(
+                                    color: Colors.white,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                        FractionallySizedBox(
-                          widthFactor: 0.32,
-                          child: Container(
-                            height: 4,
-                            decoration: BoxDecoration(
-                              color: EditoColors.primary,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                          ),
-                        ),
-                        Align(
-                          alignment: const Alignment(-0.33, 0),
-                          child: Container(
-                            width: 16,
-                            height: 16,
-                            decoration: const BoxDecoration(
-                              color: Colors.white,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                        ),
-                      ],
+                        );
+                      }
                     ),
                   ),
                   const SizedBox(width: 16),
@@ -782,56 +1025,108 @@ class _SceneCard extends StatelessWidget {
 }
 
 class _TemplateFlowCard extends StatelessWidget {
-  const _TemplateFlowCard({required this.template, required this.onEdit});
+  const _TemplateFlowCard({
+    required this.template,
+    required this.assetsData,
+    required this.onEdit,
+  });
 
   final TemplateData template;
-  final VoidCallback onEdit;
+  final Map<String, (String, String)> assetsData;
+  final ValueChanged<String> onEdit;
 
   @override
   Widget build(BuildContext context) {
-    final rows = [
-      _FlowAssetRowData(
-        icon: Icons.videocam_outlined,
-        title: 'Bride Video',
-        scene: 'Scene 1',
-        color: EditoColors.primary,
-        tint: const Color(0xFFF1ECFF),
-        preview: template,
-      ),
-      _FlowAssetRowData(
-        icon: Icons.videocam_outlined,
-        title: 'Groom Video',
-        scene: 'Scene 2',
-        color: EditoColors.primary,
-        tint: const Color(0xFFF1ECFF),
-        preview: template,
-      ),
-      _FlowAssetRowData(
-        icon: Icons.image_outlined,
-        title: 'Couple Photo',
-        scene: 'Scene 3',
-        color: const Color(0xFF22B37D),
-        tint: const Color(0xFFE8F8EF),
-        preview: template,
-      ),
-      const _FlowAssetRowData(
-        icon: Icons.text_fields_rounded,
-        title: 'Couple Name',
-        scene: 'Scene 4',
-        color: Color(0xFFFF9819),
-        tint: Color(0xFFFFF2DE),
-        label: 'Rahul & Priya',
-      ),
-      _FlowAssetRowData(
-        icon: Icons.verified_outlined,
-        title: 'Logo',
-        scene: 'Scene 5',
-        color: EditoColors.body,
-        tint: const Color(0xFFF1F2F7),
-        logo: true,
-        label: template.creator.substring(0, 1).toUpperCase(),
-      ),
-    ];
+    final isWedding = template.category == 'WEDDING';
+    final List<_FlowAssetRowData> rows = [];
+
+    if (isWedding) {
+      rows.addAll([
+        _FlowAssetRowData(
+          icon: Icons.videocam_outlined,
+          title: 'Bride Video',
+          scene: 'Scene 1',
+          color: EditoColors.primary,
+          tint: const Color(0xFFF1ECFF),
+          preview: template,
+          label: assetsData['Bride Video']?.$1 ?? 'Bride.mp4',
+        ),
+        _FlowAssetRowData(
+          icon: Icons.videocam_outlined,
+          title: 'Groom Video',
+          scene: 'Scene 2',
+          color: EditoColors.primary,
+          tint: const Color(0xFFF1ECFF),
+          preview: template,
+          label: assetsData['Groom Video']?.$1 ?? 'Groom.mp4',
+        ),
+        _FlowAssetRowData(
+          icon: Icons.image_outlined,
+          title: 'Couple Photo',
+          scene: 'Scene 3',
+          color: const Color(0xFF22B37D),
+          tint: const Color(0xFFE8F8EF),
+          preview: template,
+          label: assetsData['Couple Photo']?.$1 ?? 'Couple.jpg',
+        ),
+        _FlowAssetRowData(
+          icon: Icons.text_fields_rounded,
+          title: 'Couple Name',
+          scene: 'Scene 4',
+          color: const Color(0xFFFF9819),
+          tint: const Color(0xFFFFF2DE),
+          label: assetsData['Couple Name']?.$1 ?? 'Rahul & Priya',
+        ),
+        _FlowAssetRowData(
+          icon: Icons.verified_outlined,
+          title: 'Logo (Optional)',
+          scene: 'Scene 5',
+          color: EditoColors.body,
+          tint: const Color(0xFFF1F2F7),
+          logo: true,
+          label: (assetsData['Logo (Optional)']?.$1 ?? template.creator).substring(0, 1).toUpperCase(),
+        ),
+      ]);
+    } else {
+      final categoryName = _titleCase(template.category);
+      rows.addAll([
+        _FlowAssetRowData(
+          icon: Icons.videocam_outlined,
+          title: '$categoryName Video',
+          scene: 'Scene 1',
+          color: EditoColors.primary,
+          tint: const Color(0xFFF1ECFF),
+          preview: template,
+          label: assetsData['$categoryName Video']?.$1 ?? '$categoryName.mp4',
+        ),
+        _FlowAssetRowData(
+          icon: Icons.image_outlined,
+          title: 'Cover Photo',
+          scene: 'Scene 2',
+          color: const Color(0xFF22B37D),
+          tint: const Color(0xFFE8F8EF),
+          preview: template,
+          label: assetsData['Cover Photo']?.$1 ?? 'Cover.jpg',
+        ),
+        _FlowAssetRowData(
+          icon: Icons.text_fields_rounded,
+          title: 'Title Text',
+          scene: 'Scene 3',
+          color: const Color(0xFFFF9819),
+          tint: const Color(0xFFFFF2DE),
+          label: assetsData['Title Text']?.$1 ?? template.title,
+        ),
+        _FlowAssetRowData(
+          icon: Icons.verified_outlined,
+          title: 'Logo (Optional)',
+          scene: 'Scene 4',
+          color: EditoColors.body,
+          tint: const Color(0xFFF1F2F7),
+          logo: true,
+          label: (assetsData['Logo (Optional)']?.$1 ?? template.creator).substring(0, 1).toUpperCase(),
+        ),
+      ]);
+    }
 
     return Container(
       padding: const EdgeInsets.all(22),
@@ -851,7 +1146,10 @@ class _TemplateFlowCard extends StatelessWidget {
           for (final row in rows)
             Padding(
               padding: const EdgeInsets.only(bottom: 17),
-              child: _FlowAssetRow(data: row, onEdit: onEdit),
+              child: _FlowAssetRow(
+                data: row,
+                onEdit: () => onEdit(row.title),
+              ),
             ),
         ],
       ),
@@ -911,15 +1209,30 @@ class _FlowAssetRow extends StatelessWidget {
         ),
         const SizedBox(width: 11),
         Expanded(
-          child: Text(
-            data.scene,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: GoogleFonts.inter(
-              color: EditoColors.body,
-              fontSize: 12,
-              fontWeight: FontWeight.w800,
-            ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                data.scene,
+                style: GoogleFonts.inter(
+                  color: EditoColors.body,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                data.label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.inter(
+                  color: EditoColors.dark,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
           ),
         ),
         _TinyEditButton(onTap: onEdit),
@@ -1107,15 +1420,23 @@ class _AiQualityCard extends StatelessWidget {
 }
 
 class _OutputInfoCard extends StatelessWidget {
-  const _OutputInfoCard();
+  const _OutputInfoCard({
+    required this.quality,
+    required this.length,
+    required this.ratio,
+  });
+
+  final String quality;
+  final String length;
+  final String ratio;
 
   @override
   Widget build(BuildContext context) {
-    const items = [
-      (Icons.hd_outlined, 'Quality', '1080p Full HD'),
-      (Icons.schedule_rounded, 'Duration', '30 Seconds'),
-      (Icons.description_outlined, 'Estimated Size', '~15 MB'),
-      (Icons.phone_iphone_rounded, 'Aspect Ratio', '9:16 Vertical'),
+    final items = [
+      (Icons.hd_outlined, 'Quality', quality),
+      (Icons.schedule_rounded, 'Duration', length),
+      (Icons.description_outlined, 'Estimated Size', quality.contains('4K') ? '~45 MB' : quality.contains('720p') ? '~8 MB' : '~15 MB'),
+      (Icons.phone_iphone_rounded, 'Aspect Ratio', ratio),
     ];
 
     return Container(
@@ -1232,9 +1553,19 @@ class _OutputInfoCard extends StatelessWidget {
 }
 
 class _GenerateFinalButton extends StatelessWidget {
-  const _GenerateFinalButton({required this.template});
+  const _GenerateFinalButton({
+    required this.template,
+    required this.assetsData,
+    required this.quality,
+    required this.length,
+    required this.ratio,
+  });
 
   final TemplateData template;
+  final Map<String, (String, String)> assetsData;
+  final String quality;
+  final String length;
+  final String ratio;
 
   @override
   Widget build(BuildContext context) {
@@ -1245,7 +1576,13 @@ class _GenerateFinalButton extends StatelessWidget {
         onTap: () {
           Navigator.of(context).push(
             MaterialPageRoute<void>(
-              builder: (_) => GenerateVideoScreen(template: template),
+              builder: (_) => GenerateVideoScreen(
+                template: template,
+                assetsData: assetsData,
+                quality: quality,
+                length: length,
+                ratio: ratio,
+              ),
             ),
           );
         },

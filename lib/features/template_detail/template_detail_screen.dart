@@ -72,10 +72,86 @@ class TemplateDetailScreen extends StatelessWidget {
   }
 }
 
-class _TemplateDetailHero extends StatelessWidget {
+class _TemplateDetailHero extends StatefulWidget {
   const _TemplateDetailHero({required this.template});
 
   final TemplateData template;
+
+  @override
+  State<_TemplateDetailHero> createState() => _TemplateDetailHeroState();
+}
+
+class _TemplateDetailHeroState extends State<_TemplateDetailHero> {
+  Timer? _playbackTimer;
+  double _progress = 0.0;
+  bool _isPlaying = false;
+  bool _showActionOverlay = false;
+  IconData _overlayIcon = Icons.play_arrow_rounded;
+
+  int get _totalSeconds {
+    final parts = widget.template.duration.split(':');
+    if (parts.length >= 2) {
+      final mins = int.tryParse(parts[parts.length - 2]) ?? 0;
+      final secs = int.tryParse(parts[parts.length - 1]) ?? 0;
+      return mins * 60 + secs;
+    }
+    return 20; // fallback
+  }
+
+  @override
+  void dispose() {
+    _playbackTimer?.cancel();
+    super.dispose();
+  }
+
+  void _togglePlay() {
+    setState(() {
+      _isPlaying = !_isPlaying;
+      _overlayIcon = _isPlaying ? Icons.play_arrow_rounded : Icons.pause_rounded;
+      _showActionOverlay = true;
+      if (_isPlaying) {
+        _startTimer();
+      } else {
+        _playbackTimer?.cancel();
+      }
+    });
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (mounted) {
+        setState(() {
+          _showActionOverlay = false;
+        });
+      }
+    });
+  }
+
+  void _startTimer() {
+    _playbackTimer?.cancel();
+    _playbackTimer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
+      if (!mounted) return;
+      setState(() {
+        _progress += 0.1 / _totalSeconds;
+        if (_progress >= 1.0) {
+          _progress = 0.0; // Loop playback
+        }
+      });
+    });
+  }
+
+  String _formatDuration(double factor) {
+    final total = _totalSeconds;
+    final current = (factor * total).round();
+    final mins = current ~/ 60;
+    final secs = current % 60;
+    return '${mins.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
+  }
+
+  void _seekTo(double localX, double totalWidth) {
+    if (totalWidth <= 0) return;
+    final newProgress = (localX / totalWidth).clamp(0.0, 1.0);
+    setState(() {
+      _progress = newProgress;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -99,14 +175,40 @@ class _TemplateDetailHero extends StatelessWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              // Load unsplash image if wedding category
-              if (template.category == 'WEDDING')
+              // Background Visual / Image
+              if (widget.template.category == 'WEDDING')
                 Image.network(
                   'https://images.unsplash.com/photo-1607190074257-dd4b7af0309f?w=800&auto=format&fit=crop&q=80',
                   fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    color: widget.template.color,
+                    child: Center(
+                      child: Icon(
+                        Icons.favorite_rounded,
+                        color: Colors.white.withValues(alpha: 0.3),
+                        size: 80,
+                      ),
+                    ),
+                  ),
                 )
               else
-                _TemplateVisual(data: template),
+                _TemplateVisual(data: widget.template),
+
+              // Animated playback equalizer and scan line
+              if (_isPlaying)
+                Positioned.fill(
+                  child: _VideoPlayerRippleAnimation(
+                    progress: _progress,
+                    color: widget.template.color,
+                  ),
+                ),
+
+              // Custom overlay artwork
+              Positioned.fill(
+                child: CustomPaint(
+                  painter: _DetailHeroOverlayPainter(widget.template),
+                ),
+              ),
 
               // Gradient Overlay
               DecoratedBox(
@@ -115,20 +217,48 @@ class _TemplateDetailHero extends StatelessWidget {
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      Colors.black.withOpacity(0.35),
+                      Colors.black.withValues(alpha: 0.35),
                       Colors.transparent,
-                      Colors.black.withOpacity(0.65),
+                      Colors.black.withValues(alpha: 0.70),
                     ],
                   ),
                 ),
               ),
 
-              // Player ui overlay
+              // Tap screen to play/pause
+              GestureDetector(
+                onTap: _togglePlay,
+                behavior: HitTestBehavior.translucent,
+              ),
+
+              // Large center action toggle notification icon
+              if (_showActionOverlay)
+                Center(
+                  child: AnimatedOpacity(
+                    opacity: _showActionOverlay ? 1.0 : 0.0,
+                    duration: const Duration(milliseconds: 200),
+                    child: Container(
+                      width: 70,
+                      height: 70,
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.6),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        _overlayIcon,
+                        color: Colors.white,
+                        size: 40,
+                      ),
+                    ),
+                  ),
+                ),
+
+              // Player controls UI overlay
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
-                    // Top Row
+                    // Top Row Navigation & Options
                     Row(
                       children: [
                         _HeroCircleButton(
@@ -146,32 +276,46 @@ class _TemplateDetailHero extends StatelessWidget {
                       ],
                     ),
                     const Spacer(),
-                    // Play Button
-                    Container(
-                      width: 52,
-                      height: 52,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.9),
-                        shape: BoxShape.circle,
+                    // Play Button in the center (only visible when paused)
+                    if (!_isPlaying)
+                      GestureDetector(
+                        onTap: _togglePlay,
+                        child: Container(
+                          width: 56,
+                          height: 56,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.95),
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.2),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: const Icon(
+                            Icons.play_arrow_rounded,
+                            color: Colors.black,
+                            size: 36,
+                          ),
+                        ),
                       ),
-                      child: const Icon(
-                        Icons.play_arrow_rounded,
-                        color: Colors.black,
-                        size: 34,
-                      ),
-                    ),
                     const Spacer(),
-                    // Seek bar Row
+                    // Seek Bar Controls Row
                     Row(
                       children: [
-                        const Icon(
-                          Icons.play_arrow_rounded,
-                          color: Colors.white,
-                          size: 20,
+                        GestureDetector(
+                          onTap: _togglePlay,
+                          child: Icon(
+                            _isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                            color: Colors.white,
+                            size: 24,
+                          ),
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          '00:00',
+                          _formatDuration(_progress),
                           style: GoogleFonts.inter(
                             color: Colors.white,
                             fontSize: 13,
@@ -180,43 +324,62 @@ class _TemplateDetailHero extends StatelessWidget {
                         ),
                         const SizedBox(width: 12),
                         Expanded(
-                          child: Stack(
-                            alignment: Alignment.centerLeft,
-                            children: [
-                              Container(
-                                height: 3,
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.35),
-                                  borderRadius: BorderRadius.circular(2),
-                                ),
-                              ),
-                              FractionallySizedBox(
-                                widthFactor: 0.35,
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              final totalWidth = constraints.maxWidth;
+                              return GestureDetector(
+                                onHorizontalDragUpdate: (details) {
+                                  _seekTo(details.localPosition.dx, totalWidth);
+                                },
+                                onTapDown: (details) {
+                                  _seekTo(details.localPosition.dx, totalWidth);
+                                },
                                 child: Container(
-                                  height: 3,
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFF8D56FF),
-                                    borderRadius: BorderRadius.circular(2),
+                                  height: 24,
+                                  color: Colors.transparent,
+                                  alignment: Alignment.center,
+                                  child: Stack(
+                                    alignment: Alignment.centerLeft,
+                                    clipBehavior: Clip.none,
+                                    children: [
+                                      Container(
+                                        height: 4,
+                                        decoration: BoxDecoration(
+                                          color: Colors.white.withValues(alpha: 0.35),
+                                          borderRadius: BorderRadius.circular(2),
+                                        ),
+                                      ),
+                                      FractionallySizedBox(
+                                        widthFactor: _progress,
+                                        child: Container(
+                                          height: 4,
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFF9E56FF),
+                                            borderRadius: BorderRadius.circular(2),
+                                          ),
+                                        ),
+                                      ),
+                                      Positioned(
+                                        left: (_progress * totalWidth) - 5,
+                                        child: Container(
+                                          width: 10,
+                                          height: 10,
+                                          decoration: const BoxDecoration(
+                                            color: Color(0xFF9E56FF),
+                                            shape: BoxShape.circle,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                              ),
-                              Positioned(
-                                left: 60,
-                                child: Container(
-                                  width: 10,
-                                  height: 10,
-                                  decoration: const BoxDecoration(
-                                    color: Color(0xFF8D56FF),
-                                    shape: BoxShape.circle,
-                                  ),
-                                ),
-                              ),
-                            ],
+                              );
+                            },
                           ),
                         ),
                         const SizedBox(width: 12),
                         Text(
-                          '00:30',
+                          widget.template.duration,
                           style: GoogleFonts.inter(
                             color: Colors.white,
                             fontSize: 13,
@@ -239,6 +402,114 @@ class _TemplateDetailHero extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class _VideoPlayerRippleAnimation extends StatefulWidget {
+  const _VideoPlayerRippleAnimation({required this.progress, required this.color});
+
+  final double progress;
+  final Color color;
+
+  @override
+  State<_VideoPlayerRippleAnimation> createState() => _VideoPlayerRippleAnimationState();
+}
+
+class _VideoPlayerRippleAnimationState extends State<_VideoPlayerRippleAnimation> with SingleTickerProviderStateMixin {
+  late AnimationController _animController;
+
+  @override
+  void initState() {
+    super.initState();
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _animController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _animController,
+      builder: (context, child) {
+        return CustomPaint(
+          painter: _VideoPlaybackPainter(
+            animationValue: _animController.value,
+            progress: widget.progress,
+            color: widget.color,
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _VideoPlaybackPainter extends CustomPainter {
+  const _VideoPlaybackPainter({
+    required this.animationValue,
+    required this.progress,
+    required this.color,
+  });
+
+  final double animationValue;
+  final double progress;
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Offset.zero & size;
+    final paint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [
+          color.withValues(alpha: 0.15),
+          Colors.black.withValues(alpha: 0.4),
+        ],
+      ).createShader(rect);
+    canvas.drawRect(rect, paint);
+
+    // Draw scanning neon line representing video player sweep
+    final scanY = size.height * ((progress * 1.5) % 1.0);
+    final scanPaint = Paint()
+      ..color = const Color(0xFF9E56FF).withValues(alpha: 0.4)
+      ..strokeWidth = 3
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
+    canvas.drawLine(Offset(0, scanY), Offset(size.width, scanY), scanPaint);
+
+    // Draw dancing equalizer bars at the bottom
+    final wavePaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.35)
+      ..style = PaintingStyle.fill;
+
+    const barCount = 30;
+    final barWidth = size.width / barCount - 2;
+    for (var i = 0; i < barCount; i++) {
+      // Calculate height using sine waves and animationValue
+      final sinFactor = math.sin((i * 0.4) + (animationValue * math.pi * 2));
+      final barHeight = 12 + (sinFactor.abs() * 28);
+      final x = i * (barWidth + 2);
+      final y = size.height - barHeight - 48; // above seek bar
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(x, y, barWidth, barHeight),
+          const Radius.circular(2),
+        ),
+        wavePaint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _VideoPlaybackPainter oldDelegate) {
+    return oldDelegate.animationValue != animationValue ||
+        oldDelegate.progress != progress;
   }
 }
 
@@ -409,45 +680,57 @@ class _DetailTitleRow extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 10),
-              Row(
+              Wrap(
+                spacing: 12,
+                runSpacing: 6,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  const Icon(
-                    Icons.star_rounded,
-                    color: Color(0xFFFFB72C),
-                    size: 18,
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.star_rounded,
+                        color: Color(0xFFFFB72C),
+                        size: 18,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '4.9',
+                        style: GoogleFonts.inter(
+                          color: EditoColors.dark,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '(5.1K Reviews)',
+                        style: GoogleFonts.inter(
+                          color: EditoColors.body.withValues(alpha: 0.65),
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 4),
-                  Text(
-                    '4.9',
-                    style: GoogleFonts.inter(
-                      color: EditoColors.dark,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    '(5.1K Reviews)',
-                    style: GoogleFonts.inter(
-                      color: EditoColors.body.withOpacity(0.65),
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Icon(
-                    Icons.people_outline_rounded,
-                    color: EditoColors.body.withOpacity(0.65),
-                    size: 16,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    '125K Videos Created',
-                    style: GoogleFonts.inter(
-                      color: EditoColors.body.withOpacity(0.65),
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.people_outline_rounded,
+                        color: EditoColors.body.withValues(alpha: 0.65),
+                        size: 16,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '125K Videos Created',
+                        style: GoogleFonts.inter(
+                          color: EditoColors.body.withValues(alpha: 0.65),
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -589,7 +872,7 @@ class _DetailCreatorCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: EditoColors.white,
         borderRadius: BorderRadius.circular(20),
@@ -605,21 +888,12 @@ class _DetailCreatorCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Created by',
-            style: GoogleFonts.poppins(
-              color: EditoColors.dark,
-              fontSize: 15,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: 16),
           Row(
             children: [
-              // Styled W logo
+              // Creator Avatar
               Container(
-                width: 58,
-                height: 58,
+                width: 50,
+                height: 50,
                 decoration: BoxDecoration(
                   color: Colors.black,
                   shape: BoxShape.circle,
@@ -627,15 +901,15 @@ class _DetailCreatorCard extends StatelessWidget {
                 ),
                 alignment: Alignment.center,
                 child: Text(
-                  'W',
+                  template.creator.isNotEmpty ? template.creator.substring(0, 1).toUpperCase() : 'W',
                   style: GoogleFonts.cinzel(
                     color: const Color(0xFFD4AF37),
-                    fontSize: 24,
+                    fontSize: 20,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
               ),
-              const SizedBox(width: 15),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -649,71 +923,29 @@ class _DetailCreatorCard extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                             style: GoogleFonts.poppins(
                               color: EditoColors.dark,
-                              fontSize: 16,
+                              fontSize: 15,
                               fontWeight: FontWeight.w800,
                             ),
                           ),
                         ),
-                        const SizedBox(width: 5),
+                        const SizedBox(width: 4),
                         const Icon(
                           Icons.verified_rounded,
                           color: Color(0xFF3B82F6),
-                          size: 16,
+                          size: 15,
                         ),
                       ],
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 2),
                     Text(
-                      'Professional ${_titleCase(template.category)} Video Creator',
+                      'Professional Creator',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: GoogleFonts.inter(
-                        color: EditoColors.body.withOpacity(0.6),
-                        fontSize: 12,
+                        color: EditoColors.body.withValues(alpha: 0.6),
+                        fontSize: 11,
                         fontWeight: FontWeight.w600,
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    // Stats with icons
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.folder_open_outlined,
-                          color: EditoColors.muted,
-                          size: 14,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '45 Templates',
-                          style: GoogleFonts.inter(
-                            color: EditoColors.body.withOpacity(0.6),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          '•',
-                          style: TextStyle(
-                            color: EditoColors.body.withOpacity(0.4),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        const Icon(
-                          Icons.people_outline_rounded,
-                          color: EditoColors.muted,
-                          size: 14,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '12K Followers',
-                          style: GoogleFonts.inter(
-                            color: EditoColors.body.withOpacity(0.6),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
                     ),
                   ],
                 ),
@@ -723,28 +955,28 @@ class _DetailCreatorCard extends StatelessWidget {
               GestureDetector(
                 onTap: () {},
                 child: Container(
-                  height: 40,
-                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  height: 34,
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
                   decoration: BoxDecoration(
                     color: const Color(0xFFF3F1FD),
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(10),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        'View Profile',
+                        'Profile',
                         style: GoogleFonts.poppins(
                           color: EditoColors.primary,
-                          fontSize: 13,
+                          fontSize: 12,
                           fontWeight: FontWeight.w800,
                         ),
                       ),
-                      const SizedBox(width: 4),
+                      const SizedBox(width: 2),
                       const Icon(
                         Icons.chevron_right_rounded,
                         color: EditoColors.primary,
-                        size: 16,
+                        size: 14,
                       ),
                     ],
                   ),
@@ -752,8 +984,44 @@ class _DetailCreatorCard extends StatelessWidget {
               ),
             ],
           ),
+          const SizedBox(height: 16),
+          // Divider Line
+          Container(
+            height: 1,
+            color: const Color(0xFFF1EEFF),
+          ),
+          const SizedBox(height: 12),
+          // Stats Row
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildStatItem(Icons.folder_open_outlined, '45 Templates'),
+              Container(width: 1, height: 16, color: const Color(0xFFE5E2F5)),
+              _buildStatItem(Icons.people_outline_rounded, '12K Followers'),
+              Container(width: 1, height: 16, color: const Color(0xFFE5E2F5)),
+              _buildStatItem(Icons.star_outline_rounded, '4.9 Rating'),
+            ],
+          ),
         ],
       ),
+    );
+  }
+
+  Widget _buildStatItem(IconData icon, String text) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, color: EditoColors.muted, size: 15),
+        const SizedBox(width: 6),
+        Text(
+          text,
+          style: GoogleFonts.inter(
+            color: EditoColors.body.withValues(alpha: 0.65),
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -785,7 +1053,7 @@ class _DetailSectionTitle extends StatelessWidget {
           const SizedBox(width: 6),
           Icon(
             Icons.info_outline_rounded,
-            color: EditoColors.body.withOpacity(0.5),
+            color: EditoColors.body.withValues(alpha: 0.5),
             size: 18,
           ),
         ],
@@ -892,7 +1160,7 @@ class _RequirementTile extends StatelessWidget {
             style: GoogleFonts.inter(
               color: subtitle == 'Required'
                   ? EditoColors.primary
-                  : EditoColors.body.withOpacity(0.5),
+                  : EditoColors.body.withValues(alpha: 0.5),
               fontSize: 11,
               fontWeight: FontWeight.w700,
             ),
@@ -991,6 +1259,23 @@ class _UserPreviewCard extends StatelessWidget {
                     Image.network(
                       previewImages[index],
                       fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              template.secondaryColor,
+                              template.color,
+                            ],
+                          ),
+                        ),
+                        child: Center(
+                          child: Icon(
+                            Icons.movie_creation_outlined,
+                            color: Colors.white.withValues(alpha: 0.45),
+                            size: 36,
+                          ),
+                        ),
+                      ),
                     ),
                     DecoratedBox(
                       decoration: BoxDecoration(
@@ -999,7 +1284,7 @@ class _UserPreviewCard extends StatelessWidget {
                           end: Alignment.bottomCenter,
                           colors: [
                             Colors.transparent,
-                            Colors.black.withOpacity(0.45),
+                            Colors.black.withValues(alpha: 0.45),
                           ],
                         ),
                       ),
@@ -1009,7 +1294,7 @@ class _UserPreviewCard extends StatelessWidget {
                         width: 32,
                         height: 32,
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.9),
+                          color: Colors.white.withValues(alpha: 0.9),
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(
@@ -1028,7 +1313,7 @@ class _UserPreviewCard extends StatelessWidget {
                           vertical: 3,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.65),
+                          color: Colors.black.withValues(alpha: 0.65),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
@@ -1051,7 +1336,13 @@ class _UserPreviewCard extends StatelessWidget {
                 children: [
                   CircleAvatar(
                     radius: 12,
-                    backgroundImage: NetworkImage(userAvatars[index]),
+                    foregroundImage: NetworkImage(userAvatars[index]),
+                    backgroundColor: template.color.withValues(alpha: 0.15),
+                    child: Icon(
+                      Icons.person_rounded,
+                      size: 14,
+                      color: template.color,
+                    ),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
@@ -1212,7 +1503,7 @@ class _ReviewCard extends StatelessWidget {
                           Text(
                             '1 week ago',
                             style: GoogleFonts.inter(
-                              color: EditoColors.body.withOpacity(0.5),
+                              color: EditoColors.body.withValues(alpha: 0.5),
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
                             ),
@@ -1230,7 +1521,7 @@ class _ReviewCard extends StatelessWidget {
             maxLines: 3,
             overflow: TextOverflow.ellipsis,
             style: GoogleFonts.inter(
-              color: EditoColors.body.withOpacity(0.85),
+              color: EditoColors.body.withValues(alpha: 0.85),
               fontSize: 13,
               fontWeight: FontWeight.w600,
               height: 1.45,
@@ -1282,7 +1573,7 @@ class _UseTemplateButton extends StatelessWidget {
                 width: 53,
                 height: 53,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.13),
+                  color: Colors.white.withValues(alpha: 0.13),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(

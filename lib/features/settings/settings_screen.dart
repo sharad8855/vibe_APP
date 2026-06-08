@@ -299,8 +299,8 @@ class _SettingsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 74,
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 14),
       child: Row(
         children: [
           const SizedBox(width: 18),
@@ -318,6 +318,7 @@ class _SettingsRow extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   data.title,

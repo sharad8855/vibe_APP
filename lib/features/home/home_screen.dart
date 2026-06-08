@@ -81,19 +81,43 @@ class _HomeScreenState extends State<HomeScreen> {
 
   late int _selectedIndex = widget.initialIndex;
 
+  String _selectedCategory = 'All';
+
   List<Widget> _buildHomeContent() {
+    final filteredTemplates = _selectedCategory == 'All'
+        ? _templates
+        : _templates.where((t) => t.category.toLowerCase() == _selectedCategory.toLowerCase()).toList();
+
     return [
       const _HomeTopBar(),
       const SizedBox(height: 27),
-      const _CreatorBanner(),
+      const _HomeBannerCarousel(),
       const SizedBox(height: 18),
-      const _StatsRow(),
+      _StatsRow(
+        onTapStat: (index) {
+          setState(() {
+            _selectedIndex = index;
+          });
+        },
+      ),
       const SizedBox(height: 30),
-      const _CategoryPills(),
+      _CategoryPills(
+        selectedCategory: _selectedCategory,
+        onSelected: (cat) {
+          setState(() {
+            _selectedCategory = cat;
+          });
+        },
+      ),
       const SizedBox(height: 28),
-      const _SectionHeader(title: 'Trending Now'),
+      _SectionHeader(title: _selectedCategory == 'All' ? 'Trending Now' : '$_selectedCategory Templates'),
       const SizedBox(height: 14),
-      _TemplateGrid(templates: _templates.take(4).toList(growable: false)),
+      _TemplateGrid(
+        templates: filteredTemplates,
+        showDuration: true,
+        showByCreator: true,
+        aspectRatio: 0.68,
+      ),
     ];
   }
 
@@ -203,28 +227,15 @@ class _HomeTopBar extends StatelessWidget {
           ),
         ),
         const Spacer(),
-        const Icon(Icons.search_rounded, color: EditoColors.dark, size: 35),
-        const SizedBox(width: 20),
-        Container(
-          width: 50,
-          height: 50,
-          padding: const EdgeInsets.all(3),
-          decoration: const BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: LinearGradient(
-              colors: [EditoColors.primary, Color(0xFFC7BFFF)],
-            ),
-          ),
-          child: ClipOval(
-            child: Container(
-              color: EditoColors.primaryLight,
-              child: const Icon(
-                Icons.person_rounded,
-                color: EditoColors.dark,
-                size: 34,
+        GestureDetector(
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => const SearchScreen(),
               ),
-            ),
-          ),
+            );
+          },
+          child: const Icon(Icons.search_rounded, color: EditoColors.dark, size: 35),
         ),
       ],
     );
@@ -445,12 +456,14 @@ class _BannerArtPainter extends CustomPainter {
 }
 
 class _StatsRow extends StatelessWidget {
-  const _StatsRow();
+  const _StatsRow({required this.onTapStat});
+
+  final ValueChanged<int> onTapStat;
 
   @override
   Widget build(BuildContext context) {
     return Row(
-      children: const [
+      children: [
         Expanded(
           child: _StatCard(
             icon: Icons.layers_rounded,
@@ -458,26 +471,29 @@ class _StatsRow extends StatelessWidget {
             label: 'Templates\nAvailable',
             color: EditoColors.primary,
             tint: EditoColors.primaryLight,
+            onTap: () => onTapStat(1), // index 1 is Browse
           ),
         ),
-        SizedBox(width: 10),
+        const SizedBox(width: 10),
         Expanded(
           child: _StatCard(
             icon: Icons.movie_creation_rounded,
             value: '24.6K',
             label: 'Videos\nCreated',
-            color: Color(0xFF22B77A),
-            tint: Color(0xFFDDF7EA),
+            color: const Color(0xFF22B77A),
+            tint: const Color(0xFFDDF7EA),
+            onTap: () => onTapStat(2), // index 2 is My Videos
           ),
         ),
-        SizedBox(width: 10),
+        const SizedBox(width: 10),
         Expanded(
           child: _StatCard(
             icon: Icons.wallet_rounded,
             value: '₹ 3,45,678',
             label: 'Earnings\nPaid',
             color: EditoColors.accent,
-            tint: Color(0xFFFFE5EC),
+            tint: const Color(0xFFFFE5EC),
+            onTap: () => onTapStat(3), // index 3 is Profile
           ),
         ),
       ],
@@ -492,6 +508,7 @@ class _StatCard extends StatelessWidget {
     required this.label,
     required this.color,
     required this.tint,
+    required this.onTap,
   });
 
   final IconData icon;
@@ -499,79 +516,95 @@ class _StatCard extends StatelessWidget {
   final String label;
   final Color color;
   final Color tint;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 108,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: EditoColors.white,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x10000000),
-            offset: Offset(0, 10),
-            blurRadius: 28,
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: tint,
-              borderRadius: BorderRadius.circular(10),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 125,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        decoration: BoxDecoration(
+          color: EditoColors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x0A000000),
+              offset: Offset(0, 8),
+              blurRadius: 24,
             ),
-            child: Icon(icon, color: color, size: 21),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  value,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.poppins(
-                    color: color,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: tint,
+                    borderRadius: BorderRadius.circular(10),
                   ),
+                  child: Icon(icon, color: color, size: 18),
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  label,
-                  style: GoogleFonts.inter(
-                    color: EditoColors.body.withValues(alpha: 0.78),
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.w700,
-                    height: 1.15,
-                  ),
+                Icon(
+                  Icons.arrow_outward_rounded,
+                  color: EditoColors.body.withValues(alpha: 0.3),
+                  size: 14,
                 ),
               ],
             ),
-          ),
-        ],
+            const Spacer(),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                value,
+                style: GoogleFonts.poppins(
+                  color: color,
+                  fontSize: 15.5,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.5,
+                ),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.inter(
+                color: EditoColors.body.withValues(alpha: 0.78),
+                fontSize: 10.5,
+                fontWeight: FontWeight.w700,
+                height: 1.15,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
 class _CategoryPills extends StatelessWidget {
-  const _CategoryPills();
+  const _CategoryPills({required this.selectedCategory, required this.onSelected});
+
+  final String selectedCategory;
+  final ValueChanged<String> onSelected;
 
   static const categories = [
     ('All', Icons.auto_awesome_rounded),
+    ('Trending', Icons.local_fire_department_rounded),
     ('Travel', Icons.flight_takeoff_rounded),
     ('Wedding', Icons.ring_volume_rounded),
     ('Business', Icons.business_center_rounded),
-    ('Fitness', Icons.fitness_center_rounded),
     ('Urban', Icons.location_city_rounded),
+    ('Lifestyle', Icons.eco_rounded),
   ];
 
   @override
@@ -582,10 +615,13 @@ class _CategoryPills extends StatelessWidget {
       child: Row(
         children: [
           for (var i = 0; i < categories.length; i++) ...[
-            _CategoryChip(
-              label: categories[i].$1,
-              icon: categories[i].$2,
-              selected: i == 0,
+            GestureDetector(
+              onTap: () => onSelected(categories[i].$1),
+              child: _CategoryChip(
+                label: categories[i].$1,
+                icon: categories[i].$2,
+                selected: selectedCategory.toLowerCase() == categories[i].$1.toLowerCase(),
+              ),
             ),
             if (i != categories.length - 1) const SizedBox(width: 7),
           ],
@@ -736,7 +772,7 @@ class _HomeBottomNav extends StatelessWidget {
   }
 }
 
-class _NavItem extends StatelessWidget {
+class _NavItem extends StatefulWidget {
   const _NavItem({
     required this.icon,
     required this.label,
@@ -750,64 +786,417 @@ class _NavItem extends StatelessWidget {
   final bool selected;
 
   @override
+  State<_NavItem> createState() => _NavItemState();
+}
+
+class _NavItemState extends State<_NavItem> {
+  bool _isPressed = false;
+
+  @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(30),
-        onTap: onTap,
+    final selectedColor = EditoColors.primary;
+    final unselectedColor = EditoColors.body.withValues(alpha: 0.72);
+    final activeBgColor = EditoColors.primaryLight;
+    final inactiveBgColor = Colors.transparent;
+
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _isPressed = true),
+      onTapUp: (_) => setState(() => _isPressed = false),
+      onTapCancel: () => setState(() => _isPressed = false),
+      onTap: widget.onTap,
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedScale(
+        scale: _isPressed ? 0.90 : 1.0,
+        duration: const Duration(milliseconds: 100),
+        curve: Curves.easeInOut,
         child: SizedBox(
           width: 74,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              if (selected)
-                Transform.translate(
-                  offset: const Offset(0, -15),
-                  child: Container(
-                    width: 36,
-                    height: 3,
-                    decoration: BoxDecoration(
-                      color: EditoColors.primary,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
-                )
-              else
-                const SizedBox(height: 3),
-              Container(
-                width: selected ? 43 : 36,
-                height: selected ? 43 : 36,
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeOutCubic,
+                width: widget.selected ? 36 : 0,
+                height: 3,
+                margin: const EdgeInsets.only(bottom: 4),
                 decoration: BoxDecoration(
-                  color: selected
-                      ? EditoColors.primaryLight
-                      : Colors.transparent,
+                  color: selectedColor,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+              if (!widget.selected)
+                const SizedBox(height: 7),
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeOutBack,
+                width: widget.selected ? 43 : 36,
+                height: widget.selected ? 43 : 36,
+                decoration: BoxDecoration(
+                  color: widget.selected ? activeBgColor : inactiveBgColor,
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
-                  icon,
-                  color: selected
-                      ? EditoColors.primary
-                      : EditoColors.body.withValues(alpha: 0.72),
-                  size: selected ? 31 : 29,
+                  widget.icon,
+                  color: widget.selected ? selectedColor : unselectedColor,
+                  size: widget.selected ? 31 : 29,
                 ),
               ),
-              Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+              const SizedBox(height: 3),
+              AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeInOut,
                 style: GoogleFonts.inter(
-                  color: selected
-                      ? EditoColors.primary
-                      : EditoColors.body.withValues(alpha: 0.72),
+                  color: widget.selected ? selectedColor : unselectedColor,
                   fontSize: 12,
-                  fontWeight: FontWeight.w800,
+                  fontWeight: widget.selected ? FontWeight.w800 : FontWeight.w600,
+                ),
+                child: Text(
+                  widget.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
           ),
         ),
       ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Home Banner Slider / Carousel
+// ─────────────────────────────────────────────────────────────
+class _HomeBannerCarousel extends StatefulWidget {
+  const _HomeBannerCarousel();
+
+  @override
+  State<_HomeBannerCarousel> createState() => _HomeBannerCarouselState();
+}
+
+class _HomeBannerCarouselState extends State<_HomeBannerCarousel> {
+  final PageController _pageController = PageController();
+  int _currentPage = 0;
+  Timer? _autoPlayTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _autoPlayTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      if (_pageController.hasClients) {
+        int nextPage = (_currentPage + 1) % 3;
+        _pageController.animateToPage(
+          nextPage,
+          duration: const Duration(milliseconds: 600),
+          curve: Curves.easeInOutCubic,
+        );
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _autoPlayTimer?.cancel();
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        SizedBox(
+          height: 185,
+          child: PageView(
+            controller: _pageController,
+            onPageChanged: (index) {
+              setState(() {
+                _currentPage = index;
+              });
+            },
+            children: [
+              const _CreatorBanner(),
+              _buildFeaturedTemplateBanner(),
+              _buildProBanner(),
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
+        // Indicator Dots
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            for (int i = 0; i < 3; i++)
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                margin: const EdgeInsets.symmetric(horizontal: 4),
+                width: _currentPage == i ? 18 : 6,
+                height: 6,
+                decoration: BoxDecoration(
+                  color: _currentPage == i ? EditoColors.primary : const Color(0xFFDCDDEA),
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFeaturedTemplateBanner() {
+    final weddingTemplate = const TemplateData(
+      title: 'Royal Wedding Moments',
+      category: 'WEDDING',
+      rating: '4.9 (5.1K)',
+      creator: 'The Wedding Films',
+      duration: '00:25',
+      price: '₹199',
+      color: EditoColors.accent,
+      secondaryColor: Color(0xFFFFB347),
+      overlayText: '',
+    );
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 16, 12, 14),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFE91E63), Color(0xFFFF9800)],
+        ),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x20E91E63),
+            offset: Offset(0, 10),
+            blurRadius: 24,
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            flex: 9,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    'HOT FEATURED TEMPLATE',
+                    style: GoogleFonts.inter(
+                      color: Colors.white,
+                      fontSize: 9.5,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Royal Wedding\nMoments',
+                  maxLines: 2,
+                  style: GoogleFonts.poppins(
+                    color: Colors.white,
+                    fontSize: 21,
+                    fontWeight: FontWeight.w800,
+                    height: 1.16,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Craft cinematic wedding films in seconds.',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.inter(
+                    color: Colors.white.withValues(alpha: 0.9),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const Spacer(),
+                GestureDetector(
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => TemplateDetailScreen(template: weddingTemplate),
+                      ),
+                    );
+                  },
+                  child: Container(
+                    width: 120,
+                    height: 32,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(13),
+                    ),
+                    child: Text(
+                      'Try Template',
+                      style: GoogleFonts.poppins(
+                        color: const Color(0xFFE91E63),
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Expanded(flex: 8, child: _BannerArtWedding()),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProBanner() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 16, 12, 14),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF8A3CFF), Color(0xFF2196F3)],
+        ),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x208A3CFF),
+            offset: Offset(0, 10),
+            blurRadius: 24,
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            flex: 9,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    'GO PROFESSIONAL',
+                    style: GoogleFonts.inter(
+                      color: Colors.white,
+                      fontSize: 9.5,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Unlock Edito Pro\nGet All Templates',
+                  maxLines: 2,
+                  style: GoogleFonts.poppins(
+                    color: Colors.white,
+                    fontSize: 21,
+                    fontWeight: FontWeight.w800,
+                    height: 1.16,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Gain unlimited access to 1,250+ paid video templates.',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.inter(
+                    color: Colors.white.withValues(alpha: 0.9),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const Spacer(),
+                GestureDetector(
+                  onTap: () {
+                    ScaffoldMessenger.of(context).clearSnackBars();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Pro subscription packages are coming soon!',
+                          style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+                        ),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  },
+                  child: Container(
+                    width: 110,
+                    height: 32,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(13),
+                    ),
+                    child: Text(
+                      'Upgrade Now',
+                      style: GoogleFonts.poppins(
+                        color: const Color(0xFF8A3CFF),
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Expanded(flex: 8, child: _BannerArtPro()),
+        ],
+      ),
+    );
+  }
+}
+
+class _BannerArtWedding extends StatelessWidget {
+  const _BannerArtWedding();
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        CircleAvatar(
+          radius: 36,
+          backgroundColor: Colors.white.withValues(alpha: 0.15),
+        ),
+        const Icon(
+          Icons.favorite_rounded,
+          color: Colors.white,
+          size: 40,
+        ),
+      ],
+    );
+  }
+}
+
+class _BannerArtPro extends StatelessWidget {
+  const _BannerArtPro();
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        CircleAvatar(
+          radius: 36,
+          backgroundColor: Colors.white.withValues(alpha: 0.15),
+        ),
+        const Icon(
+          Icons.star_rounded,
+          color: Colors.white,
+          size: 44,
+        ),
+      ],
     );
   }
 }

@@ -43,7 +43,7 @@ class _LoginScreenState extends State<LoginScreen> {
           const Positioned.fill(child: _SoftBackground()),
           SafeArea(
             child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
+              physics: const NeverScrollableScrollPhysics(),
               child: ConstrainedBox(
                 constraints: BoxConstraints(
                   minHeight:

@@ -386,62 +386,58 @@ class _NotificationRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 108,
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(width: 22),
-          Padding(
-            padding: const EdgeInsets.only(top: 28),
-            child: Container(
-              width: 58,
-              height: 58,
-              decoration: BoxDecoration(
-                color: data.tint,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(data.icon, color: data.color, size: 31),
+          Container(
+            width: 58,
+            height: 58,
+            decoration: BoxDecoration(
+              color: data.tint,
+              shape: BoxShape.circle,
             ),
+            child: Icon(data.icon, color: data.color, size: 31),
           ),
           const SizedBox(width: 21),
           Expanded(
-            child: Padding(
-              padding: const EdgeInsets.only(top: 24, bottom: 18),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    data.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.poppins(
-                      color: EditoColors.dark,
-                      fontSize: 17,
-                      fontWeight: FontWeight.w800,
-                    ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  data.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.poppins(
+                    color: EditoColors.dark,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    data.message,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.inter(
-                      color: EditoColors.body.withValues(alpha: 0.82),
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      height: 1.45,
-                    ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  data.message,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.inter(
+                    color: EditoColors.body.withValues(alpha: 0.82),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    height: 1.45,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
           const SizedBox(width: 12),
           Padding(
-            padding: const EdgeInsets.only(top: 27, right: 23),
+            padding: const EdgeInsets.only(right: 23),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   data.time,
@@ -454,7 +450,7 @@ class _NotificationRow extends StatelessWidget {
                   ),
                 ),
                 if (data.unread) ...[
-                  const SizedBox(height: 18),
+                  const SizedBox(height: 12),
                   const CircleAvatar(
                     radius: 6,
                     backgroundColor: EditoColors.primary,

@@ -46,7 +46,7 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
           const Positioned.fill(child: _SoftBackground()),
           SafeArea(
             child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
+              physics: const NeverScrollableScrollPhysics(),
               child: ConstrainedBox(
                 constraints: BoxConstraints(
                   minHeight:
@@ -77,6 +77,9 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
                       SizedBox(height: isCompact ? 44 : 92),
                       LayoutBuilder(
                         builder: (context, constraints) {
+                          final isNarrow = constraints.maxWidth < 360;
+                          final colWidth = isNarrow ? constraints.maxWidth : constraints.maxWidth * 0.66;
+                          final illSize = isNarrow ? 120.0 : 180.0;
                           return SizedBox(
                             height: 248,
                             child: Stack(
@@ -84,17 +87,20 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
                               children: [
                                 Positioned(
                                   right: -6,
-                                  top: 0,
-                                  child: const SizedBox(
-                                    width: 190,
-                                    height: 230,
-                                    child: _OtpIllustration(),
+                                  top: isNarrow ? 40 : 0,
+                                  child: Opacity(
+                                    opacity: isNarrow ? 0.35 : 1.0,
+                                    child: SizedBox(
+                                      width: illSize,
+                                      height: 230,
+                                      child: const _OtpIllustration(),
+                                    ),
                                   ),
                                 ),
                                 Positioned(
                                   left: 0,
                                   top: 30,
-                                  width: constraints.maxWidth * 0.66,
+                                  width: colWidth,
                                   child: Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
@@ -103,28 +109,28 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
                                         'Verify OTP',
                                         style: GoogleFonts.poppins(
                                           color: EditoColors.dark,
-                                          fontSize: 37,
+                                          fontSize: isNarrow ? 31 : 37,
                                           fontWeight: FontWeight.w800,
                                           height: 1.05,
                                         ),
                                       ),
-                                      const SizedBox(height: 28),
+                                      const SizedBox(height: 20),
                                       Text(
                                         'Enter the 6-digit code sent to',
                                         style: GoogleFonts.inter(
                                           color: EditoColors.body.withValues(
                                             alpha: 0.74,
                                           ),
-                                          fontSize: 19,
+                                          fontSize: isNarrow ? 16 : 19,
                                           fontWeight: FontWeight.w600,
                                         ),
                                       ),
-                                      const SizedBox(height: 18),
+                                      const SizedBox(height: 14),
                                       RichText(
                                         text: TextSpan(
                                           style: GoogleFonts.inter(
                                             color: EditoColors.dark,
-                                            fontSize: 19,
+                                            fontSize: isNarrow ? 16 : 19,
                                             fontWeight: FontWeight.w800,
                                           ),
                                           children: const [
