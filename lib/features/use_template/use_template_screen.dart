@@ -34,22 +34,27 @@ class _UseTemplateScreenState extends State<UseTemplateScreen> {
     final isWedding = widget.template.category == 'WEDDING';
     if (isWedding) {
       return _uploadedFiles.containsKey('Bride Video') &&
-             _uploadedFiles.containsKey('Groom Video') &&
-             _uploadedFiles.containsKey('Couple Photo') &&
-             _textController.text.trim().isNotEmpty;
+          _uploadedFiles.containsKey('Groom Video') &&
+          _uploadedFiles.containsKey('Couple Photo') &&
+          _textController.text.trim().isNotEmpty;
     } else {
       final categoryName = _titleCase(widget.template.category);
       return _uploadedFiles.containsKey('$categoryName Video') &&
-             _uploadedFiles.containsKey('Cover Photo') &&
-             _textController.text.trim().isNotEmpty;
+          _uploadedFiles.containsKey('Cover Photo') &&
+          _textController.text.trim().isNotEmpty;
     }
   }
 
-  void _onUploadAsset(String assetTitle, String fileExtension, String defaultSize) {
+  void _onUploadAsset(
+    String assetTitle,
+    String fileExtension,
+    String defaultSize,
+  ) {
     setState(() {
       final randomNum = math.Random().nextInt(89) + 10;
       final ext = fileExtension.toLowerCase();
-      _uploadedFiles[assetTitle] = '${assetTitle.replaceAll(' ', '_').toLowerCase()}_v$randomNum.$ext ($defaultSize)';
+      _uploadedFiles[assetTitle] =
+          '${assetTitle.replaceAll(' ', '_').toLowerCase()}_v$randomNum.$ext ($defaultSize)';
     });
 
     ScaffoldMessenger.of(context).clearSnackBars();
@@ -57,7 +62,10 @@ class _UseTemplateScreenState extends State<UseTemplateScreen> {
       SnackBar(
         content: Text(
           '$assetTitle uploaded successfully!',
-          style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: Colors.white),
+          style: GoogleFonts.inter(
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
         ),
         backgroundColor: const Color(0xFF22B37D),
         behavior: SnackBarBehavior.floating,
@@ -89,14 +97,19 @@ class _UseTemplateScreenState extends State<UseTemplateScreen> {
       final isWedding = widget.template.category == 'WEDDING';
       final List<String> missing = [];
       if (isWedding) {
-        if (!_uploadedFiles.containsKey('Bride Video')) missing.add('Bride Video');
-        if (!_uploadedFiles.containsKey('Groom Video')) missing.add('Groom Video');
-        if (!_uploadedFiles.containsKey('Couple Photo')) missing.add('Couple Photo');
+        if (!_uploadedFiles.containsKey('Bride Video'))
+          missing.add('Bride Video');
+        if (!_uploadedFiles.containsKey('Groom Video'))
+          missing.add('Groom Video');
+        if (!_uploadedFiles.containsKey('Couple Photo'))
+          missing.add('Couple Photo');
         if (_textController.text.trim().isEmpty) missing.add('Couple Name');
       } else {
         final categoryName = _titleCase(widget.template.category);
-        if (!_uploadedFiles.containsKey('$categoryName Video')) missing.add('$categoryName Video');
-        if (!_uploadedFiles.containsKey('Cover Photo')) missing.add('Cover Photo');
+        if (!_uploadedFiles.containsKey('$categoryName Video'))
+          missing.add('$categoryName Video');
+        if (!_uploadedFiles.containsKey('Cover Photo'))
+          missing.add('Cover Photo');
         if (_textController.text.trim().isEmpty) missing.add('Title Text');
       }
 
@@ -105,7 +118,10 @@ class _UseTemplateScreenState extends State<UseTemplateScreen> {
         SnackBar(
           content: Text(
             'Missing: ${missing.join(', ')}',
-            style: GoogleFonts.inter(fontWeight: FontWeight.w700, color: Colors.white),
+            style: GoogleFonts.inter(
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
+            ),
           ),
           backgroundColor: EditoColors.accent,
           behavior: SnackBarBehavior.floating,
@@ -253,12 +269,22 @@ class _UseTemplateScreenState extends State<UseTemplateScreen> {
                           data: assetRows[i],
                           uploadedPath: _uploadedFiles[assetRows[i].title],
                           onUpload: () {
-                            final ext = assetRows[i].title.contains('Photo') || assetRows[i].title.contains('Logo') ? 'PNG' : 'MP4';
-                            final size = assetRows[i].title.contains('Photo') || assetRows[i].title.contains('Logo') ? '3.8 MB' : '48.5 MB';
+                            final ext =
+                                assetRows[i].title.contains('Photo') ||
+                                    assetRows[i].title.contains('Logo')
+                                ? 'PNG'
+                                : 'MP4';
+                            final size =
+                                assetRows[i].title.contains('Photo') ||
+                                    assetRows[i].title.contains('Logo')
+                                ? '3.8 MB'
+                                : '48.5 MB';
                             _onUploadAsset(assetRows[i].title, ext, size);
                           },
                           onClear: () => _onClearAsset(assetRows[i].title),
-                          textController: assetRows[i].inputHint != null ? _textController : null,
+                          textController: assetRows[i].inputHint != null
+                              ? _textController
+                              : null,
                         ),
                         if (i != assetRows.length - 1)
                           const SizedBox(height: 10),
@@ -587,9 +613,15 @@ class _UploadAssetRow extends StatelessWidget {
             child: Center(
               child: CircleAvatar(
                 radius: 14,
-                backgroundColor: isUploaded ? const Color(0xFFE8F8EF) : const Color(0xFFE9DFFF),
+                backgroundColor: isUploaded
+                    ? const Color(0xFFE8F8EF)
+                    : const Color(0xFFE9DFFF),
                 child: isUploaded
-                    ? const Icon(Icons.check_rounded, color: Color(0xFF22B37D), size: 14)
+                    ? const Icon(
+                        Icons.check_rounded,
+                        color: Color(0xFF22B37D),
+                        size: 14,
+                      )
                     : Text(
                         data.step,
                         style: GoogleFonts.poppins(
@@ -610,12 +642,16 @@ class _UploadAssetRow extends StatelessWidget {
               color: EditoColors.white.withValues(alpha: 0.86),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: isUploaded ? const Color(0xFFCBEEDD) : const Color(0xFFF1EEFF),
+                color: isUploaded
+                    ? const Color(0xFFCBEEDD)
+                    : const Color(0xFFF1EEFF),
                 width: 1.2,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: isUploaded ? const Color(0x0522B37D) : const Color(0x06000000),
+                  color: isUploaded
+                      ? const Color(0x0522B37D)
+                      : const Color(0x06000000),
                   offset: const Offset(0, 8),
                   blurRadius: 22,
                 ),
@@ -635,8 +671,12 @@ class _UploadAssetRow extends StatelessWidget {
                         borderRadius: BorderRadius.circular(13),
                       ),
                       child: Icon(
-                        isUploaded ? Icons.check_circle_outline_rounded : data.icon,
-                        color: isUploaded ? const Color(0xFF22B37D) : data.color,
+                        isUploaded
+                            ? Icons.check_circle_outline_rounded
+                            : data.icon,
+                        color: isUploaded
+                            ? const Color(0xFF22B37D)
+                            : data.color,
                         size: 34,
                       ),
                     ),
@@ -672,7 +712,10 @@ class _UploadAssetRow extends StatelessWidget {
                               if (isUploaded)
                                 Container(
                                   margin: const EdgeInsets.only(left: 8),
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: const Color(0xFFE8F8EF),
                                     borderRadius: BorderRadius.circular(6),
@@ -690,7 +733,9 @@ class _UploadAssetRow extends StatelessWidget {
                                 Text(
                                   '  Optional',
                                   style: GoogleFonts.inter(
-                                    color: EditoColors.body.withValues(alpha: 0.78),
+                                    color: EditoColors.body.withValues(
+                                      alpha: 0.78,
+                                    ),
                                     fontSize: 13,
                                     fontWeight: FontWeight.w700,
                                   ),
@@ -703,9 +748,13 @@ class _UploadAssetRow extends StatelessWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: GoogleFonts.inter(
-                              color: isUploaded ? const Color(0xFF22B37D) : EditoColors.body.withValues(alpha: 0.78),
+                              color: isUploaded
+                                  ? const Color(0xFF22B37D)
+                                  : EditoColors.body.withValues(alpha: 0.78),
                               fontSize: 13,
-                              fontWeight: isUploaded ? FontWeight.w800 : FontWeight.w700,
+                              fontWeight: isUploaded
+                                  ? FontWeight.w800
+                                  : FontWeight.w700,
                             ),
                           ),
                           const SizedBox(height: 5),
@@ -778,7 +827,11 @@ class _UploadActionRowButton extends StatelessWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.sync_rounded, color: EditoColors.dark, size: 20),
+                    const Icon(
+                      Icons.sync_rounded,
+                      color: EditoColors.dark,
+                      size: 20,
+                    ),
                     const SizedBox(width: 8),
                     Text(
                       'Replace File',
@@ -874,10 +927,7 @@ class _UploadActionRowButton extends StatelessWidget {
 }
 
 class _UploadInputField extends StatefulWidget {
-  const _UploadInputField({
-    required this.hint,
-    required this.controller,
-  });
+  const _UploadInputField({required this.hint, required this.controller});
 
   final String hint;
   final TextEditingController controller;

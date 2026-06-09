@@ -9,6 +9,8 @@ class MyVideosScreen extends StatefulWidget {
 
 class _MyVideosScreenState extends State<MyVideosScreen> {
   String _selectedTab = 'All';
+  bool _isGridView = false;
+  String _sortBy = 'Last Modified';
 
   static const _videos = [
     _MyVideoData(
@@ -84,13 +86,22 @@ class _MyVideosScreenState extends State<MyVideosScreen> {
   ];
 
   List<_MyVideoData> get _filteredVideos {
+    List<_MyVideoData> list;
     if (_selectedTab == 'All') {
-      return _videos.where((v) => v.status != 'Template').toList();
+      list = _videos.where((v) => v.status != 'Template').toList();
+    } else {
+      var targetStatus = _selectedTab;
+      if (targetStatus == 'Drafts') targetStatus = 'Draft';
+      if (targetStatus == 'Templates') targetStatus = 'Template';
+      list = _videos.where((v) => v.status == targetStatus).toList();
     }
-    var targetStatus = _selectedTab;
-    if (targetStatus == 'Drafts') targetStatus = 'Draft';
-    if (targetStatus == 'Templates') targetStatus = 'Template';
-    return _videos.where((v) => v.status == targetStatus).toList();
+
+    if (_sortBy == 'Name') {
+      list.sort((a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
+    } else if (_sortBy == 'Duration') {
+      list.sort((a, b) => a.duration.compareTo(b.duration));
+    }
+    return list;
   }
 
   int get _totalCount => _videos.where((v) => v.status != 'Template').length;
@@ -128,7 +139,20 @@ class _MyVideosScreenState extends State<MyVideosScreen> {
           draftsCount: _draftsCount,
         ),
         const SizedBox(height: 32),
-        const _MyVideosToolbar(),
+        _MyVideosToolbar(
+          sortBy: _sortBy,
+          isGridView: _isGridView,
+          onSortChanged: (val) {
+            setState(() {
+              _sortBy = val;
+            });
+          },
+          onToggleView: () {
+            setState(() {
+              _isGridView = !_isGridView;
+            });
+          },
+        ),
         const SizedBox(height: 21),
         if (filtered.isEmpty)
           Padding(
@@ -143,6 +167,21 @@ class _MyVideosScreenState extends State<MyVideosScreen> {
                 ),
               ),
             ),
+          )
+        else if (_isGridView)
+          GridView.builder(
+            itemCount: filtered.length,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 16,
+              childAspectRatio: 0.76,
+            ),
+            itemBuilder: (context, index) {
+              return _MyVideoGridCard(video: filtered[index]);
+            },
           )
         else
           for (var i = 0; i < filtered.length; i++) ...[
@@ -437,76 +476,103 @@ class _VideoStatCard extends StatelessWidget {
 }
 
 class _MyVideosToolbar extends StatelessWidget {
-  const _MyVideosToolbar();
+  const _MyVideosToolbar({
+    this.sortBy,
+    this.isGridView,
+    required this.onSortChanged,
+    required this.onToggleView,
+  });
+
+  final String? sortBy;
+  final bool? isGridView;
+  final ValueChanged<String> onSortChanged;
+  final VoidCallback onToggleView;
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      physics: const BouncingScrollPhysics(),
-      child: SizedBox(
-        width: 430,
-        child: Row(
-          children: [
-            Text(
-              'Sort by:',
-              style: GoogleFonts.poppins(
-                color: EditoColors.dark,
-                fontSize: 14,
-                fontWeight: FontWeight.w800,
-              ),
+    final activeSort = sortBy ?? 'Last Modified';
+    final activeGrid = isGridView ?? false;
+
+    return Row(
+      children: [
+        Text(
+          'Sort by:',
+          style: GoogleFonts.poppins(
+            color: EditoColors.dark,
+            fontSize: 14,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(width: 8),
+        PopupMenuButton<String>(
+          onSelected: onSortChanged,
+          itemBuilder: (context) => [
+            const PopupMenuItem(
+              value: 'Last Modified',
+              child: Text('Last Modified'),
             ),
-            const SizedBox(width: 8),
-            Container(
-              height: 38,
-              width: 136,
-              padding: const EdgeInsets.symmetric(horizontal: 13),
-              decoration: BoxDecoration(
-                color: EditoColors.white.withValues(alpha: 0.52),
-                borderRadius: BorderRadius.circular(19),
-                border: Border.all(color: EditoColors.border),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Last Modified',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.inter(
-                        color: EditoColors.dark,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  const Icon(
-                    Icons.keyboard_arrow_down_rounded,
-                    color: EditoColors.dark,
-                    size: 22,
-                  ),
-                ],
-              ),
+            const PopupMenuItem(
+              value: 'Name',
+              child: Text('Name (A-Z)'),
             ),
-            const Spacer(),
-            Text(
-              'Grid View',
-              style: GoogleFonts.poppins(
-                color: EditoColors.dark,
-                fontSize: 14,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            const SizedBox(width: 10),
-            const Icon(
-              Icons.grid_view_rounded,
-              color: EditoColors.dark,
-              size: 22,
+            const PopupMenuItem(
+              value: 'Duration',
+              child: Text('Duration'),
             ),
           ],
+          child: Container(
+            height: 38,
+            padding: const EdgeInsets.symmetric(horizontal: 13),
+            decoration: BoxDecoration(
+              color: EditoColors.white.withValues(alpha: 0.52),
+              borderRadius: BorderRadius.circular(19),
+              border: Border.all(color: EditoColors.border),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  activeSort,
+                  style: GoogleFonts.inter(
+                    color: EditoColors.dark,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                const Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  color: EditoColors.dark,
+                  size: 22,
+                ),
+              ],
+            ),
+          ),
         ),
-      ),
+        const Spacer(),
+        GestureDetector(
+          onTap: onToggleView,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                activeGrid ? 'List View' : 'Grid View',
+                style: GoogleFonts.poppins(
+                  color: EditoColors.dark,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Icon(
+                activeGrid ? Icons.view_list_rounded : Icons.grid_view_rounded,
+                color: EditoColors.dark,
+                size: 22,
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
@@ -518,108 +584,184 @@ class _MyVideoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
+    return Container(
       height: 132,
-      child: Row(
-        children: [
-          Expanded(flex: 4, child: _MyVideoThumbnail(video: video)),
-          Expanded(
-            flex: 6,
-            child: Container(
-              height: 132,
-              padding: const EdgeInsets.fromLTRB(13, 12, 12, 12),
-              decoration: const BoxDecoration(
-                color: EditoColors.white,
-                borderRadius: BorderRadius.only(
-                  topRight: Radius.circular(12),
-                  bottomRight: Radius.circular(12),
+      decoration: BoxDecoration(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            final template = TemplateData(
+              title: video.title,
+              category: video.category.toUpperCase(),
+              rating: '4.8 (1.2K)',
+              creator: 'Sam Motion',
+              duration: video.duration,
+              price: 'FREE',
+              color: video.color,
+              secondaryColor: video.secondaryColor,
+              overlayText: video.overlayText,
+            );
+
+            final mockAssets = video.category.toLowerCase() == 'wedding'
+                ? {
+                    'Bride Video': ('Bride.mp4', '00:15  •  45 MB'),
+                    'Groom Video': ('Groom.mp4', '00:14  •  38 MB'),
+                    'Couple Photo': ('Couple.jpg', '1920 x 1280  •  2.4 MB'),
+                    'Couple Name': ('Rahul & Priya', 'Font: Poppins SemiBold\nColor: #E91E63'),
+                    'Logo (Optional)': ('Sam_Motion.png', '512 x 512  •  120 KB'),
+                  }
+                : {
+                    '${_titleCase(video.category)} Video': ('${_titleCase(video.category)}.mp4', '00:15  •  45 MB'),
+                    'Cover Photo': ('Cover.jpg', '1920 x 1280  •  2.4 MB'),
+                    'Title Text': (video.title, 'Font: Poppins SemiBold\nColor: #6C63FF'),
+                    'Logo (Optional)': ('Sam_Motion.png', '512 x 512  •  120 KB'),
+                  };
+
+            final cleanDuration = video.duration.replaceFirst('00:', '');
+            final finalLength = '$cleanDuration Seconds';
+
+            if (video.status == 'Completed') {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => VideoReadyScreen(
+                    template: template,
+                    assetsData: mockAssets,
+                    quality: '1080p (Full HD)',
+                    length: finalLength,
+                    ratio: '9:16 (Vertical)',
+                  ),
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Color(0x0B000000),
-                    offset: Offset(0, 8),
-                    blurRadius: 24,
+              );
+            } else if (video.status == 'In Progress') {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => GenerateVideoScreen(
+                    template: template,
+                    assetsData: mockAssets,
+                    quality: '1080p (Full HD)',
+                    length: finalLength,
+                    ratio: '9:16 (Vertical)',
                   ),
-                ],
-              ),
-              child: Stack(
-                children: [
-                  Positioned(
-                    right: 0,
-                    top: 0,
-                    child: Icon(
-                      Icons.more_horiz_rounded,
-                      color: EditoColors.dark,
-                      size: 24,
+                ),
+              );
+            } else {
+              // Draft or Template
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => PreviewCustomizeScreen(
+                    template: template,
+                  ),
+                ),
+              );
+            }
+          },
+          child: Row(
+            children: [
+              Expanded(flex: 4, child: _MyVideoThumbnail(video: video)),
+              Expanded(
+                flex: 6,
+                child: Container(
+                  height: 132,
+                  padding: const EdgeInsets.fromLTRB(13, 12, 12, 12),
+                  decoration: const BoxDecoration(
+                    color: EditoColors.white,
+                    borderRadius: BorderRadius.only(
+                      topRight: Radius.circular(12),
+                      bottomRight: Radius.circular(12),
                     ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Color(0x0B000000),
+                        offset: Offset(0, 8),
+                        blurRadius: 24,
+                      ),
+                    ],
                   ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  child: Stack(
                     children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              video.title,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: GoogleFonts.poppins(
-                                color: EditoColors.dark,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 26),
-                        ],
+                      Positioned(
+                        right: 0,
+                        top: 0,
+                        child: Icon(
+                          Icons.more_horiz_rounded,
+                          color: EditoColors.dark,
+                          size: 24,
+                        ),
                       ),
-                      const SizedBox(height: 6),
-                      _CategoryLabel(label: video.category, color: video.color),
-                      const SizedBox(height: 8),
-                      Row(
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(
-                            Icons.videocam_outlined,
-                            color: EditoColors.body.withValues(alpha: 0.62),
-                            size: 14,
-                          ),
-                          const SizedBox(width: 5),
-                          _MetaText('1080p'),
-                          const SizedBox(width: 15),
-                          Icon(
-                            Icons.motion_photos_on_outlined,
-                            color: EditoColors.body.withValues(alpha: 0.62),
-                            size: 14,
-                          ),
-                          const SizedBox(width: 5),
-                          _MetaText('30fps'),
-                        ],
-                      ),
-                      const Spacer(),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              video.updated,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: GoogleFonts.inter(
-                                color: EditoColors.body.withValues(alpha: 0.75),
-                                fontSize: 12.5,
-                                fontWeight: FontWeight.w700,
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  video.title,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: GoogleFonts.poppins(
+                                    color: EditoColors.dark,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
                               ),
-                            ),
+                              const SizedBox(width: 26),
+                            ],
                           ),
-                          _StatusBadge(status: video.status),
+                          const SizedBox(height: 6),
+                          _CategoryLabel(label: video.category, color: video.color),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.videocam_outlined,
+                                color: EditoColors.body.withValues(alpha: 0.62),
+                                size: 14,
+                              ),
+                              const SizedBox(width: 5),
+                              _MetaText('1080p'),
+                              const SizedBox(width: 15),
+                              Icon(
+                                Icons.motion_photos_on_outlined,
+                                color: EditoColors.body.withValues(alpha: 0.62),
+                                size: 14,
+                              ),
+                              const SizedBox(width: 5),
+                              _MetaText('30fps'),
+                            ],
+                          ),
+                          const Spacer(),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  video.updated,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: GoogleFonts.inter(
+                                    color: EditoColors.body.withValues(alpha: 0.75),
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                              _StatusBadge(status: video.status),
+                            ],
+                          ),
                         ],
                       ),
                     ],
                   ),
-                ],
+                ),
               ),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -807,4 +949,207 @@ class _MyVideoData {
   final Color color;
   final Color secondaryColor;
   final String overlayText;
+}
+
+class _MyVideoGridCard extends StatelessWidget {
+  const _MyVideoGridCard({required this.video});
+
+  final _MyVideoData video;
+
+  @override
+  Widget build(BuildContext context) {
+    final template = TemplateData(
+      title: video.title,
+      category: video.category.toUpperCase(),
+      rating: '4.8 (1.2K)',
+      creator: 'Sam Motion',
+      duration: video.duration,
+      price: 'FREE',
+      color: video.color,
+      secondaryColor: video.secondaryColor,
+      overlayText: video.overlayText,
+    );
+
+    final mockAssets = video.category.toLowerCase() == 'wedding'
+        ? {
+            'Bride Video': ('Bride.mp4', '00:15  •  45 MB'),
+            'Groom Video': ('Groom.mp4', '00:14  •  38 MB'),
+            'Couple Photo': ('Couple.jpg', '1920 x 1280  •  2.4 MB'),
+            'Couple Name': ('Rahul & Priya', 'Font: Poppins SemiBold\nColor: #E91E63'),
+            'Logo (Optional)': ('Sam_Motion.png', '512 x 512  •  120 KB'),
+          }
+        : {
+            '${_titleCase(video.category)} Video': ('${_titleCase(video.category)}.mp4', '00:15  •  45 MB'),
+            'Cover Photo': ('Cover.jpg', '1920 x 1280  •  2.4 MB'),
+            'Title Text': (video.title, 'Font: Poppins SemiBold\nColor: #6C63FF'),
+            'Logo (Optional)': ('Sam_Motion.png', '512 x 512  •  120 KB'),
+          };
+
+    final cleanDuration = video.duration.replaceFirst('00:', '');
+    final finalLength = '$cleanDuration Seconds';
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            if (video.status == 'Completed') {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => VideoReadyScreen(
+                    template: template,
+                    assetsData: mockAssets,
+                    quality: '1080p (Full HD)',
+                    length: finalLength,
+                    ratio: '9:16 (Vertical)',
+                  ),
+                ),
+              );
+            } else if (video.status == 'In Progress') {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => GenerateVideoScreen(
+                    template: template,
+                    assetsData: mockAssets,
+                    quality: '1080p (Full HD)',
+                    length: finalLength,
+                    ratio: '9:16 (Vertical)',
+                  ),
+                ),
+              );
+            } else {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => PreviewCustomizeScreen(
+                    template: template,
+                  ),
+                ),
+              );
+            }
+          },
+          child: Container(
+            decoration: BoxDecoration(
+              color: EditoColors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x08000000),
+                  offset: Offset(0, 6),
+                  blurRadius: 18,
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: ClipRRect(
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        _TemplateVisual(data: template),
+                        DecoratedBox(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                Colors.black.withValues(alpha: 0.02),
+                                Colors.black.withValues(alpha: 0.35),
+                              ],
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          right: 8,
+                          bottom: 8,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.65),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              video.duration,
+                              style: GoogleFonts.inter(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                        ),
+                        if (video.overlayText.isNotEmpty)
+                          Center(
+                            child: Text(
+                              video.overlayText,
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.poppins(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w900,
+                                height: 1.02,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        video.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.poppins(
+                          color: EditoColors.dark,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Flexible(
+                            child: _CategoryLabel(
+                              label: video.category,
+                              color: video.color,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          _StatusBadge(status: video.status),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        video.updated,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.inter(
+                          color: EditoColors.body.withValues(alpha: 0.6),
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }

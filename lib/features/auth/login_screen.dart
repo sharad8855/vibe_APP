@@ -7,41 +7,39 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStateMixin {
+class _LoginScreenState extends State<LoginScreen>
+    with SingleTickerProviderStateMixin {
   final _phoneController = TextEditingController();
   String? _errorMessage;
-  late AnimationController _fadeController;
-  late Animation<double> _fadeAnimation;
-  late Animation<double> _slideAnimation;
+  late AnimationController _animController;
+  late Animation<double> _fadeAnim;
+  late Animation<Offset> _slideAnim;
 
   @override
   void initState() {
     super.initState();
     _phoneController.addListener(_onPhoneChanged);
-    _fadeController = AnimationController(
-      duration: const Duration(milliseconds: 1000),
+    _animController = AnimationController(
+      duration: const Duration(milliseconds: 900),
       vsync: this,
     );
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _fadeController,
-        curve: const Interval(0.1, 1.0, curve: Curves.easeOut),
-      ),
+    _fadeAnim = CurvedAnimation(
+      parent: _animController,
+      curve: const Interval(0.0, 0.9, curve: Curves.easeOut),
     );
-    _slideAnimation = Tween<double>(begin: 24.0, end: 0.0).animate(
-      CurvedAnimation(
-        parent: _fadeController,
-        curve: const Interval(0.1, 1.0, curve: Curves.easeOutCubic),
-      ),
-    );
-    _fadeController.forward();
+    _slideAnim = Tween<Offset>(
+      begin: const Offset(0, 0.06),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _animController,
+      curve: const Interval(0.1, 1.0, curve: Curves.easeOutCubic),
+    ));
+    _animController.forward();
   }
 
   void _onPhoneChanged() {
     if (_errorMessage != null) {
-      setState(() {
-        _errorMessage = null;
-      });
+      setState(() => _errorMessage = null);
     }
   }
 
@@ -49,96 +47,100 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   void dispose() {
     _phoneController.removeListener(_onPhoneChanged);
     _phoneController.dispose();
-    _fadeController.dispose();
+    _animController.dispose();
     super.dispose();
+  }
+
+  void _onContinue() {
+    final phone = _phoneController.text.trim();
+    if (phone.isEmpty) {
+      setState(() => _errorMessage = 'Please enter your mobile number');
+    } else if (phone.length < 10) {
+      setState(
+          () => _errorMessage = 'Please enter a valid 10-digit mobile number');
+    } else {
+      setState(() => _errorMessage = null);
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(builder: (_) => const VerifyOtpScreen()),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
-    final isCompact = size.height < 850;
+    final topSectionHeight = size.height * 0.42;
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF5F4FF),
+      resizeToAvoidBottomInset: true,
       body: Stack(
         children: [
-          const Positioned.fill(child: _SoftBackground()),
-          SafeArea(
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  minHeight:
-                      size.height -
-                      MediaQuery.paddingOf(context).top -
-                      MediaQuery.paddingOf(context).bottom,
-                ),
-                child: AnimatedBuilder(
-                  animation: _fadeController,
-                  builder: (context, child) {
-                    return Opacity(
-                      opacity: _fadeAnimation.value,
-                      child: Transform.translate(
-                        offset: Offset(0, _slideAnimation.value),
-                        child: child,
-                      ),
-                    );
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 30),
+          // ── top purple hero ────────────────────────────────────────────
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: topSectionHeight,
+            child: const _HeroSection(),
+          ),
+
+          // ── white bottom card ──────────────────────────────────────────
+          Positioned(
+            top: topSectionHeight - 32,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: FadeTransition(
+              opacity: _fadeAnim,
+              child: SlideTransition(
+                position: _slideAnim,
+                child: Container(
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    borderRadius:
+                        BorderRadius.vertical(top: Radius.circular(32)),
+                  ),
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(24, 32, 24, 32),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                      SizedBox(height: isCompact ? 16 : 58),
-                      _LogoHeader(isCompact: isCompact),
-                      SizedBox(height: isCompact ? 18 : 52),
-                      _HeroIllustration(height: isCompact ? 150 : 250),
-                      SizedBox(height: isCompact ? 20 : 58),
-                      Text(
-                        'Welcome back!',
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.poppins(
-                          color: EditoColors.dark,
-                          fontSize: isCompact ? 25 : 31,
-                          fontWeight: FontWeight.w800,
-                          height: 1.1,
+                        // heading
+                        Text(
+                          'Welcome to Edito',
+                          style: GoogleFonts.poppins(
+                            color: EditoColors.dark,
+                            fontSize: 24,
+                            fontWeight: FontWeight.w800,
+                            height: 1.2,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 20),
-                      Text(
-                        'Enter your mobile number to continue',
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.inter(
-                          color: EditoColors.body.withValues(alpha: 0.74),
-                          fontSize: isCompact ? 15 : 18,
-                          fontWeight: FontWeight.w600,
+                        const SizedBox(height: 4),
+                        Text(
+                          'Login to continue',
+                          style: GoogleFonts.inter(
+                            color: EditoColors.body,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
-                      ),
-                      SizedBox(height: isCompact ? 20 : 54),
-                      Text(
-                        'Mobile Number',
-                        style: GoogleFonts.poppins(
-                          color: EditoColors.dark,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
+                        const SizedBox(height: 24),
+
+                        // phone field
+                        _PhoneField(
+                          controller: _phoneController,
+                          hasError: _errorMessage != null,
                         ),
-                      ),
-                      const SizedBox(height: 14),
-                      _PhoneNumberField(
-                        controller: _phoneController,
-                        hasError: _errorMessage != null,
-                        height: isCompact ? 58 : 66,
-                      ),
-                      if (_errorMessage != null) ...[
-                        const SizedBox(height: 8),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                          child: Row(
+
+                        // error
+                        if (_errorMessage != null) ...[
+                          const SizedBox(height: 8),
+                          Row(
                             children: [
-                              const Icon(
-                                Icons.error_outline_rounded,
-                                color: Color(0xFFFF3356),
-                                size: 16,
-                              ),
+                              const Icon(Icons.error_outline_rounded,
+                                  color: Color(0xFFFF3356), size: 15),
                               const SizedBox(width: 6),
                               Expanded(
                                 child: Text(
@@ -146,401 +148,412 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                   style: GoogleFonts.inter(
                                     color: const Color(0xFFFF3356),
                                     fontSize: 13,
-                                    fontWeight: FontWeight.w600,
+                                    fontWeight: FontWeight.w500,
                                   ),
                                 ),
                               ),
                             ],
                           ),
-                        ),
-                      ],
-                      const SizedBox(height: 30),
-                      _ContinueButton(
-                        label: 'Continue',
-                        height: isCompact ? 58 : 66,
-                        onTap: () {
-                          final phone = _phoneController.text.trim();
-                          if (phone.isEmpty) {
-                            setState(() {
-                              _errorMessage = 'Please enter your mobile number';
-                            });
-                          } else if (phone.length < 10) {
-                            setState(() {
-                              _errorMessage = 'Please enter a valid 10-digit mobile number';
-                            });
-                          } else {
-                            setState(() {
-                              _errorMessage = null;
-                            });
-                            Navigator.of(context).push(
-                              MaterialPageRoute<void>(
-                                builder: (_) => const VerifyOtpScreen(),
+                        ],
+
+                        const SizedBox(height: 16),
+
+                        // Continue button
+                        _ContinueBtn(onTap: _onContinue),
+
+                        const SizedBox(height: 20),
+
+                        // OR divider
+                        Row(
+                          children: [
+                            const Expanded(
+                                child: Divider(
+                                    color: Color(0xFFE4E6F0), thickness: 1)),
+                            Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 18),
+                              child: Text(
+                                'OR',
+                                style: GoogleFonts.inter(
+                                  color: EditoColors.muted,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 1.2,
+                                ),
                               ),
-                            );
-                          }
-                        },
-                      ),
-                      SizedBox(height: isCompact ? 20 : 38),
-                      const _DividerWithText(),
-                      const SizedBox(height: 28),
-                      _GoogleButton(size: isCompact ? 66 : 82),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Continue with Google',
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.inter(
-                          color: EditoColors.body.withValues(alpha: 0.76),
-                          fontSize: isCompact ? 15 : 17,
-                          fontWeight: FontWeight.w600,
+                            ),
+                            const Expanded(
+                                child: Divider(
+                                    color: Color(0xFFE4E6F0), thickness: 1)),
+                          ],
                         ),
-                      ),
-                      SizedBox(height: isCompact ? 36 : 88),
-                      const _PrivacyNote(),
-                      const SizedBox(height: 28),
-                    ],
+
+                        const SizedBox(height: 20),
+
+                        // Feature pills row
+                        const _FeaturePills(),
+
+                        const SizedBox(height: 28),
+
+                        // Terms & Privacy
+                        const _TermsNote(),
+
+                        const SizedBox(height: 8),
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
           ),
-        ),
-      ],
-    ),
-  );
-  }
-}
-
-class _LogoHeader extends StatelessWidget {
-  const _LogoHeader({this.isCompact = false});
-
-  final bool isCompact;
-
-  @override
-  Widget build(BuildContext context) {
-    final double fontSize = isCompact ? 46.0 : 62.0;
-    final dotOffset = isCompact ? const Offset(38, -40) : const Offset(51, -54);
-    final textOffset = isCompact ? const Offset(0, -15) : const Offset(0, -20);
-    final double textFontSize = isCompact ? 14.0 : 18.0;
-
-    return Column(
-      children: [
-        RichText(
-          text: TextSpan(
-            children: [
-              TextSpan(
-                text: 'E',
-                style: GoogleFonts.poppins(
-                  color: EditoColors.primary,
-                  fontSize: fontSize,
-                  fontWeight: FontWeight.w900,
-                  height: 1,
-                ),
-              ),
-              TextSpan(
-                text: 'dito',
-                style: GoogleFonts.poppins(
-                  color: EditoColors.dark,
-                  fontSize: fontSize,
-                  fontWeight: FontWeight.w900,
-                  height: 1,
-                ),
-              ),
-            ],
-          ),
-        ),
-        Transform.translate(
-          offset: dotOffset,
-          child: const CircleAvatar(
-            radius: 6,
-            backgroundColor: EditoColors.accent,
-          ),
-        ),
-        Transform.translate(
-          offset: textOffset,
-          child: Text(
-            'Video Template Platform',
-            style: GoogleFonts.inter(
-              color: EditoColors.body.withValues(alpha: 0.78),
-              fontSize: textFontSize,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _HeroIllustration extends StatelessWidget {
-  const _HeroIllustration({this.height = 250.0});
-
-  final double height;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: height,
-      child: CustomPaint(
-        painter: _IllustrationPainter(),
-        child: const SizedBox.expand(),
+        ],
       ),
     );
   }
 }
 
-class _IllustrationPainter extends CustomPainter {
+// ─────────────────────────────────────────────────────────────────────────────
+// Hero Section (purple top area with logo + film-strip illustration)
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _HeroSection extends StatelessWidget {
+  const _HeroSection();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFFEDE9FF), Color(0xFFE0DBFF)],
+        ),
+      ),
+      child: SafeArea(
+        bottom: false,
+        child: Stack(
+          children: [
+            // subtle film-strip background decoration
+            const Positioned.fill(child: _FilmStripDecoration()),
+
+            // centered logo + tagline
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const SizedBox(height: 8),
+                // Logo icon
+                Container(
+                  width: 88,
+                  height: 88,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    color: Colors.white.withValues(alpha: 0.6),
+                  ),
+                  child: Center(
+                    child: CustomPaint(
+                      size: const Size(56, 56),
+                      painter: _EditoLogoPainter(),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                // "Edito" wordmark
+                RichText(
+                  text: TextSpan(
+                    children: [
+                      TextSpan(
+                        text: 'Edito',
+                        style: GoogleFonts.poppins(
+                          color: EditoColors.dark,
+                          fontSize: 36,
+                          fontWeight: FontWeight.w900,
+                          height: 1,
+                        ),
+                      ),
+                      // play-button "o" dot
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 4),
+                // "Templates that tell your story."
+                RichText(
+                  text: TextSpan(
+                    children: [
+                      TextSpan(
+                        text: 'Templates that tell ',
+                        style: GoogleFonts.inter(
+                          color: EditoColors.body,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      TextSpan(
+                        text: 'your story.',
+                        style: GoogleFonts.inter(
+                          color: EditoColors.primary,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 32),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// "E" logo painter that matches the reference (film-strip inside letter E)
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _EditoLogoPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final double baseHeight = 250.0;
-    final double scale = size.height / baseHeight;
-    final double baseWidth = size.width / scale;
-    canvas.save();
-    canvas.scale(scale);
+    final w = size.width;
+    final h = size.height;
 
-    final center = Offset(baseWidth / 2, baseHeight / 2);
-    final shadow = Paint()
-      ..color = const Color(0x1F6C63FF)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 24);
-    canvas.drawOval(
-      Rect.fromCenter(
-        center: Offset(center.dx, baseHeight * 0.86),
-        width: 190,
-        height: 28,
-      ),
-      shadow,
-    );
+    // Background gradient letter E shape
+    final gradPaint = Paint()
+      ..shader = const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFF9B6FFF), Color(0xFF6C63FF)],
+      ).createShader(Rect.fromLTWH(0, 0, w, h));
 
-    final phoneRect = RRect.fromRectAndRadius(
-      Rect.fromCenter(center: center, width: 128, height: 205),
-      const Radius.circular(28),
-    );
-    canvas.save();
-    canvas.rotate(-0.03);
-    final shiftedPhone = phoneRect.shift(const Offset(3, 0));
-    canvas.drawRRect(
-      shiftedPhone,
-      Paint()
-        ..color = const Color(0x666C63FF)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 7,
-    );
-    canvas.drawRRect(
-      shiftedPhone,
-      Paint()
-        ..shader = const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFFF2EFFF), Color(0xFFFFFFFF)],
-        ).createShader(phoneRect.outerRect),
-    );
+    // Draw E shape
+    final ePath = Path()
+      ..moveTo(w * 0.12, 0)
+      ..lineTo(w * 0.95, 0)
+      ..lineTo(w * 0.95, h * 0.28)
+      ..lineTo(w * 0.38, h * 0.28)
+      ..lineTo(w * 0.38, h * 0.42)
+      ..lineTo(w * 0.82, h * 0.42)
+      ..lineTo(w * 0.82, h * 0.60)
+      ..lineTo(w * 0.38, h * 0.60)
+      ..lineTo(w * 0.38, h * 0.72)
+      ..lineTo(w * 0.95, h * 0.72)
+      ..lineTo(w * 0.95, h)
+      ..lineTo(w * 0.12, h)
+      ..quadraticBezierTo(0, h, 0, h * 0.88)
+      ..lineTo(0, h * 0.12)
+      ..quadraticBezierTo(0, 0, w * 0.12, 0)
+      ..close();
+    canvas.drawPath(ePath, gradPaint);
 
-    final notch = RRect.fromRectAndRadius(
-      Rect.fromCenter(
-        center: Offset(center.dx, baseHeight * 0.18),
-        width: 40,
-        height: 5,
-      ),
-      const Radius.circular(4),
-    );
-    canvas.drawRRect(notch, Paint()..color = const Color(0xFFD9D0FF));
-    canvas.drawCircle(
-      Offset(center.dx, baseHeight * 0.38),
-      30,
-      Paint()..color = const Color(0xFF7F6EFF),
-    );
-    canvas.drawCircle(
-      Offset(center.dx, baseHeight * 0.34),
-      11,
-      Paint()..color = const Color(0xFFFFFFFF),
-    );
-    canvas.drawOval(
-      Rect.fromCenter(
-        center: Offset(center.dx, baseHeight * 0.45),
-        width: 42,
-        height: 28,
-      ),
-      Paint()..color = const Color(0xFFFFFFFF),
-    );
-    for (var i = 0; i < 2; i++) {
+    // Film-strip dots on the left bar
+    final dotPaint = Paint()..color = Colors.white.withValues(alpha: 0.9);
+    final dotPositions = [0.12, 0.35, 0.58, 0.81];
+    for (final pos in dotPositions) {
       canvas.drawRRect(
         RRect.fromRectAndRadius(
-          Rect.fromLTWH(
-            center.dx - 48,
-            baseHeight * (0.53 + i * 0.13),
-            92,
-            30,
+          Rect.fromCenter(
+            center: Offset(w * 0.20, h * pos),
+            width: w * 0.12,
+            height: h * 0.07,
           ),
-          const Radius.circular(8),
+          const Radius.circular(2),
         ),
-        Paint()..color = const Color(0xFFFFFFFF),
-      );
-      canvas.drawCircle(
-        Offset(center.dx - 39, baseHeight * (0.59 + i * 0.13)),
-        4,
-        Paint()..color = const Color(0xFFD8CEFF),
+        dotPaint,
       );
     }
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromCenter(
-          center: Offset(center.dx, baseHeight * 0.78),
-          width: 42,
-          height: 5,
-        ),
-        const Radius.circular(3),
-      ),
-      Paint()..color = const Color(0xFFE3DDFF),
-    );
-    canvas.restore();
 
-    final bubble = RRect.fromRectAndRadius(
-      Rect.fromLTWH(baseWidth * 0.18, baseHeight * 0.28, 67, 57),
-      const Radius.circular(12),
-    );
-    canvas.drawRRect(
-      bubble,
-      Paint()
-        ..shader = const LinearGradient(
-          colors: [Color(0xFF8B75FF), Color(0xFF6C63FF)],
-        ).createShader(bubble.outerRect),
-    );
-    final tail = Path()
-      ..moveTo(baseWidth * 0.34, baseHeight * 0.49)
-      ..lineTo(baseWidth * 0.31, baseHeight * 0.41)
-      ..lineTo(baseWidth * 0.39, baseHeight * 0.41)
-      ..close();
-    canvas.drawPath(tail, Paint()..color = const Color(0xFF7A68FF));
-    _drawLock(canvas, Offset(baseWidth * 0.27, baseHeight * 0.39));
-
-    final playRect = RRect.fromRectAndRadius(
-      Rect.fromLTWH(baseWidth * 0.65, baseHeight * 0.56, 86, 69),
-      const Radius.circular(12),
-    );
-    canvas.drawRRect(
-      playRect,
-      Paint()
-        ..shader = const LinearGradient(
-          colors: [Color(0xFFFF6E92), Color(0xFFFF4F79)],
-        ).createShader(playRect.outerRect),
-    );
+    // Play triangle inside the E middle section
+    final playPaint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.fill;
     final play = Path()
-      ..moveTo(baseWidth * 0.73, baseHeight * 0.64)
-      ..lineTo(baseWidth * 0.73, baseHeight * 0.76)
-      ..lineTo(baseWidth * 0.82, baseHeight * 0.70)
+      ..moveTo(w * 0.50, h * 0.43)
+      ..lineTo(w * 0.50, h * 0.59)
+      ..lineTo(w * 0.62, h * 0.51)
       ..close();
-    canvas.drawPath(play, Paint()..color = Colors.white);
-
-    _drawLeaf(canvas, Offset(baseWidth * 0.29, baseHeight * 0.76), -0.55);
-    _drawLeaf(canvas, Offset(baseWidth * 0.34, baseHeight * 0.83), -0.9);
-
-    final dotPaint = Paint()..color = const Color(0xFFE6E0FF);
-    for (final dot in [
-      Offset(baseWidth * 0.67, baseHeight * 0.43),
-      Offset(baseWidth * 0.75, baseHeight * 0.37),
-      Offset(baseWidth * 0.76, baseHeight * 0.47),
-      Offset(baseWidth * 0.23, baseHeight * 0.56),
-      Offset(baseWidth * 0.39, baseHeight * 0.64),
-    ]) {
-      canvas.drawCircle(dot, 5, dotPaint);
-    }
-
-    canvas.restore();
-  }
-
-  void _drawLock(Canvas canvas, Offset center) {
-    final paint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.86)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 4
-      ..strokeCap = StrokeCap.round;
-    canvas.drawArc(
-      Rect.fromCenter(center: center.translate(0, -4), width: 20, height: 21),
-      3.15,
-      3.15,
-      false,
-      paint,
-    );
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromCenter(center: center.translate(0, 6), width: 24, height: 22),
-        const Radius.circular(5),
-      ),
-      Paint()..color = Colors.white.withValues(alpha: 0.84),
-    );
-  }
-
-  void _drawLeaf(Canvas canvas, Offset center, double rotation) {
-    canvas.save();
-    canvas.translate(center.dx, center.dy);
-    canvas.rotate(rotation);
-    final leaf = Path()
-      ..moveTo(0, -35)
-      ..cubicTo(28, -12, 25, 22, 0, 38)
-      ..cubicTo(-24, 18, -22, -16, 0, -35)
-      ..close();
-    canvas.drawPath(leaf, Paint()..color = const Color(0xFFD7CEFF));
-    canvas.restore();
+    canvas.drawPath(play, playPaint);
   }
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-class _PhoneNumberField extends StatelessWidget {
-  const _PhoneNumberField({
-    required this.controller,
-    this.hasError = false,
-    this.height = 66,
-  });
+// ─────────────────────────────────────────────────────────────────────────────
+// Film-strip decoration (background decorative lines)
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _FilmStripDecoration extends StatelessWidget {
+  const _FilmStripDecoration();
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(painter: _FilmStripPainter());
+  }
+}
+
+class _FilmStripPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0x1A6C63FF)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
+
+    // Top-left film strip
+    _drawFilmStrip(
+        canvas, paint, Offset(-10, size.height * 0.05), size.width * 0.45, 70);
+
+    // Bottom-right film strip
+    canvas.save();
+    canvas.translate(size.width * 0.72, size.height * 0.55);
+    canvas.rotate(0.18);
+    _drawFilmStripRaw(canvas, paint, Offset.zero, size.width * 0.45, 70);
+    canvas.restore();
+
+    // Sparkle dots
+    final dotPaint = Paint()
+      ..color = const Color(0x336C63FF)
+      ..style = PaintingStyle.fill;
+    for (final pos in [
+      Offset(size.width * 0.85, size.height * 0.18),
+      Offset(size.width * 0.15, size.height * 0.70),
+      Offset(size.width * 0.90, size.height * 0.60),
+      Offset(size.width * 0.30, size.height * 0.20),
+    ]) {
+      canvas.drawCircle(pos, 4, dotPaint);
+    }
+
+    // Small plus signs
+    final crossPaint = Paint()
+      ..color = const Color(0x446C63FF)
+      ..strokeWidth = 2
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+    for (final pos in [
+      Offset(size.width * 0.78, size.height * 0.10),
+      Offset(size.width * 0.10, size.height * 0.55),
+    ]) {
+      canvas.drawLine(pos.translate(-6, 0), pos.translate(6, 0), crossPaint);
+      canvas.drawLine(pos.translate(0, -6), pos.translate(0, 6), crossPaint);
+    }
+  }
+
+  void _drawFilmStrip(
+      Canvas canvas, Paint paint, Offset topLeft, double width, double height) {
+    canvas.save();
+    canvas.translate(topLeft.dx, topLeft.dy);
+    canvas.rotate(-0.2);
+    _drawFilmStripRaw(canvas, paint, Offset.zero, width, height);
+    canvas.restore();
+  }
+
+  void _drawFilmStripRaw(
+      Canvas canvas, Paint paint, Offset topLeft, double width, double height) {
+    final rect =
+        Rect.fromLTWH(topLeft.dx, topLeft.dy, width, height);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(rect, const Radius.circular(8)),
+      paint,
+    );
+    // Sprocket holes top
+    for (int i = 0; i < 6; i++) {
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(topLeft.dx + 10 + i * (width - 20) / 5, topLeft.dy + 6,
+              (width - 20) / 5 - 6, height * 0.18),
+          const Radius.circular(2),
+        ),
+        paint,
+      );
+    }
+    // Sprocket holes bottom
+    for (int i = 0; i < 6; i++) {
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(
+              topLeft.dx + 10 + i * (width - 20) / 5,
+              topLeft.dy + height - height * 0.18 - 6,
+              (width - 20) / 5 - 6,
+              height * 0.18),
+          const Radius.circular(2),
+        ),
+        paint,
+      );
+    }
+    // Vertical dividers
+    for (int i = 1; i < 5; i++) {
+      final x = topLeft.dx + (width / 5) * i;
+      canvas.drawLine(
+        Offset(x, topLeft.dy + height * 0.28),
+        Offset(x, topLeft.dy + height * 0.72),
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phone Number Field (+91 | Enter mobile number)
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _PhoneField extends StatelessWidget {
+  const _PhoneField({required this.controller, this.hasError = false});
 
   final TextEditingController controller;
   final bool hasError;
-  final double height;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: height,
+      height: 56,
       decoration: BoxDecoration(
-        color: EditoColors.white,
-        borderRadius: BorderRadius.circular(17),
+        color: const Color(0xFFF7F6FF),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: hasError ? const Color(0xFFFF3356) : Colors.white,
-          width: hasError ? 1.5 : 1.0,
+          color: hasError
+              ? const Color(0xFFFF3356)
+              : const Color(0xFFE0DCFF),
+          width: 1.5,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: hasError ? const Color(0x18FF3356) : const Color(0x12000000),
-            offset: const Offset(0, 8),
-            blurRadius: 24,
-          ),
-        ],
       ),
       child: Row(
         children: [
-          const SizedBox(width: 22),
-          const _IndiaFlag(),
-          const SizedBox(width: 12),
-          const Icon(
-            Icons.keyboard_arrow_down_rounded,
-            color: EditoColors.body,
-            size: 24,
-          ),
-          const SizedBox(width: 16),
-          Container(width: 1, height: 31, color: EditoColors.border),
-          const SizedBox(width: 18),
-          Text(
-            '+91',
-            style: GoogleFonts.inter(
-              color: EditoColors.dark,
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
+          // Country code section
+          GestureDetector(
+            onTap: () {},
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              child: Row(
+                children: [
+                  Text(
+                    '+91',
+                    style: GoogleFonts.inter(
+                      color: EditoColors.dark,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  const Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    color: EditoColors.body,
+                    size: 20,
+                  ),
+                ],
+              ),
             ),
           ),
-          const SizedBox(width: 17),
-          Container(width: 1, height: 31, color: EditoColors.border),
-          const SizedBox(width: 18),
+          // divider
+          Container(width: 1, height: 28, color: const Color(0xFFDDD9FF)),
+          const SizedBox(width: 12),
+          // phone icon
+          const Icon(Icons.phone_outlined, color: EditoColors.muted, size: 18),
+          const SizedBox(width: 8),
+          // text field
           Expanded(
             child: TextField(
               controller: controller,
@@ -554,7 +567,7 @@ class _PhoneNumberField extends StatelessWidget {
               cursorColor: EditoColors.primary,
               style: GoogleFonts.inter(
                 color: EditoColors.dark,
-                fontSize: 18,
+                fontSize: 15,
                 fontWeight: FontWeight.w600,
               ),
               decoration: InputDecoration(
@@ -563,162 +576,221 @@ class _PhoneNumberField extends StatelessWidget {
                 hintText: 'Enter mobile number',
                 hintStyle: GoogleFonts.inter(
                   color: EditoColors.muted,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
+              onSubmitted: (_) => FocusScope.of(context).unfocus(),
             ),
           ),
+          const SizedBox(width: 14),
         ],
       ),
     );
   }
 }
 
-class _IndiaFlag extends StatelessWidget {
-  const _IndiaFlag();
+// ─────────────────────────────────────────────────────────────────────────────
+// Continue Button (deep purple gradient with arrow)
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _ContinueBtn extends StatefulWidget {
+  const _ContinueBtn({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  State<_ContinueBtn> createState() => _ContinueBtnState();
+}
+
+class _ContinueBtnState extends State<_ContinueBtn> {
+  bool _pressed = false;
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(2),
-      child: SizedBox(
-        width: 28,
-        height: 19,
-        child: Column(
-          children: [
-            Expanded(child: Container(color: const Color(0xFFFF9933))),
-            Expanded(
-              child: Container(
-                color: Colors.white,
-                alignment: Alignment.center,
-                child: Container(
-                  width: 5,
-                  height: 5,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF2F4C9A),
-                    shape: BoxShape.circle,
-                  ),
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _pressed = true),
+      onTapUp: (_) {
+        setState(() => _pressed = false);
+        widget.onTap();
+      },
+      onTapCancel: () => setState(() => _pressed = false),
+      child: AnimatedScale(
+        scale: _pressed ? 0.97 : 1.0,
+        duration: const Duration(milliseconds: 120),
+        child: Container(
+          height: 54,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            gradient: const LinearGradient(
+              colors: [Color(0xFF7B5FFF), Color(0xFF5B3FE8)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF6C63FF).withValues(alpha: 0.35),
+                offset: const Offset(0, 8),
+                blurRadius: 20,
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'Continue',
+                style: GoogleFonts.poppins(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
-            ),
-            Expanded(child: Container(color: const Color(0xFF138808))),
-          ],
+              const SizedBox(width: 10),
+              Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.22),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.arrow_forward_rounded,
+                  color: Colors.white,
+                  size: 16,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-class _DividerWithText extends StatelessWidget {
-  const _DividerWithText();
+// ─────────────────────────────────────────────────────────────────────────────
+// Feature pills: Secure | Fast | Create
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _FeaturePills extends StatelessWidget {
+  const _FeaturePills();
+
+  static const _items = [
+    (Icons.shield_outlined, 'Secure', 'Your data is safe\nand protected'),
+    (Icons.bolt_rounded, 'Fast', 'Quick login to get\nyou started'),
+    (Icons.play_circle_outline_rounded, 'Create',
+        'Start creating amazing\nvideos instantly'),
+  ];
 
   @override
   Widget build(BuildContext context) {
     return Row(
+      children: List.generate(_items.length, (i) {
+        final (icon, label, sub) = _items[i];
+        return Expanded(
+          child: Padding(
+            padding: EdgeInsets.only(
+              left: i == 0 ? 0 : 6,
+              right: i == _items.length - 1 ? 0 : 6,
+            ),
+            child: _FeaturePill(icon: icon, label: label, sub: sub),
+          ),
+        );
+      }),
+    );
+  }
+}
+
+class _FeaturePill extends StatelessWidget {
+  const _FeaturePill({
+    required this.icon,
+    required this.label,
+    required this.sub,
+  });
+
+  final IconData icon;
+  final String label;
+  final String sub;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
       children: [
-        const Expanded(child: Divider(color: EditoColors.border, thickness: 1)),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 25),
-          child: Text(
-            'or',
-            style: GoogleFonts.inter(
-              color: EditoColors.body.withValues(alpha: 0.7),
-              fontSize: 16,
+        Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            color: const Color(0xFFF0EEFF),
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: const Color(0xFFDDD9FF),
+              width: 1.5,
+            ),
+          ),
+          child: Icon(icon, color: EditoColors.primary, size: 22),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          label,
+          style: GoogleFonts.poppins(
+            color: EditoColors.dark,
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 3),
+        Text(
+          sub,
+          textAlign: TextAlign.center,
+          style: GoogleFonts.inter(
+            color: EditoColors.muted,
+            fontSize: 10.5,
+            fontWeight: FontWeight.w500,
+            height: 1.4,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Terms & Privacy footer
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _TermsNote extends StatelessWidget {
+  const _TermsNote();
+
+  @override
+  Widget build(BuildContext context) {
+    return RichText(
+      textAlign: TextAlign.center,
+      text: TextSpan(
+        style: GoogleFonts.inter(
+          color: EditoColors.muted,
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+          height: 1.6,
+        ),
+        children: [
+          const TextSpan(text: 'By continuing, you agree to our '),
+          TextSpan(
+            text: 'Terms of Service',
+            style: const TextStyle(
+              color: EditoColors.primary,
               fontWeight: FontWeight.w700,
             ),
           ),
-        ),
-        const Expanded(child: Divider(color: EditoColors.border, thickness: 1)),
-      ],
-    );
-  }
-}
-
-class _GoogleButton extends StatelessWidget {
-  const _GoogleButton({this.size = 82});
-
-  final double size;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Container(
-        width: size,
-        height: size,
-        decoration: const BoxDecoration(
-          color: EditoColors.white,
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: Color(0x10000000),
-              offset: Offset(0, 8),
-              blurRadius: 25,
-            ),
-          ],
-        ),
-        child: Center(
-          child: Text(
-            'G',
-            style: GoogleFonts.poppins(
-              color: const Color(0xFF4285F4),
-              fontSize: size * 0.41,
-              fontWeight: FontWeight.w800,
+          const TextSpan(text: '\nand '),
+          TextSpan(
+            text: 'Privacy Policy',
+            style: const TextStyle(
+              color: EditoColors.primary,
+              fontWeight: FontWeight.w700,
             ),
           ),
-        ),
+        ],
       ),
-    );
-  }
-}
-
-class _PrivacyNote extends StatelessWidget {
-  const _PrivacyNote();
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Container(
-          width: 27,
-          height: 32,
-          decoration: const BoxDecoration(
-            color: Color(0xFFC8BFFF),
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(14),
-              topRight: Radius.circular(14),
-              bottomLeft: Radius.circular(8),
-              bottomRight: Radius.circular(8),
-            ),
-          ),
-          child: const Icon(Icons.check_rounded, color: Colors.white, size: 18),
-        ),
-        const SizedBox(width: 19),
-        Flexible(
-          child: RichText(
-            text: TextSpan(
-              style: GoogleFonts.inter(
-                color: EditoColors.body.withValues(alpha: 0.76),
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-                height: 1.45,
-              ),
-              children: const [
-                TextSpan(text: "We'll never share your number\n"),
-                TextSpan(text: 'with anyone. See our '),
-                TextSpan(
-                  text: 'Privacy Policy',
-                  style: TextStyle(
-                    color: EditoColors.primary,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
     );
   }
 }
