@@ -5,11 +5,13 @@ class _ContinueButton extends StatelessWidget {
     required this.label,
     required this.onTap,
     this.height = 66,
+    this.isLoading = false,
   });
 
   final String label;
   final VoidCallback onTap;
   final double height;
+  final bool isLoading;
 
   @override
   Widget build(BuildContext context) {
@@ -31,28 +33,39 @@ class _ContinueButton extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(17),
-          onTap: onTap,
+          onTap: isLoading ? null : onTap,
           child: SizedBox(
             height: height,
             child: Stack(
               alignment: Alignment.center,
               children: [
-                Text(
-                  label,
-                  style: GoogleFonts.poppins(
-                    color: EditoColors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
+                if (isLoading)
+                  const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2.5,
+                    ),
+                  )
+                else ...[
+                  Text(
+                    label,
+                    style: GoogleFonts.poppins(
+                      color: EditoColors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
-                ),
-                Positioned(
-                  right: 27,
-                  child: Icon(
-                    Icons.arrow_forward_rounded,
-                    color: EditoColors.white,
-                    size: height * 0.47, // scales arrow icon size dynamically
+                  Positioned(
+                    right: 27,
+                    child: Icon(
+                      Icons.arrow_forward_rounded,
+                      color: EditoColors.white,
+                      size: height * 0.47, // scales arrow icon size dynamically
+                    ),
                   ),
-                ),
+                ],
               ],
             ),
           ),

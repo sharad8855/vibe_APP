@@ -1,11 +1,14 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math' as math;
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:http/http.dart' as http;
 
 part 'core/theme/colors.dart';
+part 'core/services/api_client.dart';
 part 'shared/models/template_data.dart';
 part 'shared/widgets/background.dart';
 part 'shared/widgets/primary_button.dart';
@@ -42,7 +45,9 @@ part 'features/preview_template/preview_template_screen.dart';
 part 'features/generate_video/generate_video_screen.dart';
 part 'features/video_ready/video_ready_screen.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await ApiClient.initialize();
   runApp(const EditoApp());
 }
 

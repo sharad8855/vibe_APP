@@ -1,7 +1,14 @@
 part of '../../main.dart';
 
 class VerifyOtpScreen extends StatefulWidget {
-  const VerifyOtpScreen({super.key});
+  const VerifyOtpScreen({
+    super.key,
+    required this.email,
+    required this.flowType,
+  });
+
+  final String email;
+  final String flowType; // 'login' or 'register'
 
   @override
   State<VerifyOtpScreen> createState() => _VerifyOtpScreenState();
@@ -12,11 +19,67 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
   final _otpFocusNode = FocusNode();
   String? _errorMessage;
   bool _showSuccessAnimation = false;
+  bool _isLoading = false;
+  bool _isResending = false;
+
+  Timer? _resendTimer;
+  int _secondsRemaining = 60;
+  bool _canResend = false;
 
   @override
   void initState() {
     super.initState();
     _otpController.addListener(_onOtpChanged);
+    _startResendTimer();
+  }
+
+  void _startResendTimer() {
+    setState(() {
+      _secondsRemaining = 60;
+      _canResend = false;
+    });
+    _resendTimer?.cancel();
+    _resendTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) return;
+      if (_secondsRemaining > 0) {
+        setState(() {
+          _secondsRemaining--;
+        });
+      } else {
+        setState(() {
+          _canResend = true;
+        });
+        _resendTimer?.cancel();
+      }
+    });
+  }
+
+  void _onResendOtp() async {
+    if (_isResending || !_canResend) return;
+
+    setState(() {
+      _isResending = true;
+      _errorMessage = null;
+    });
+
+    try {
+      if (widget.flowType == 'register') {
+        await ApiClient.resendOtp(widget.email);
+      } else {
+        await ApiClient.loginOtp(widget.email);
+      }
+      _startResendTimer();
+    } on ApiException catch (e) {
+      setState(() => _errorMessage = e.message);
+    } catch (e) {
+      setState(() => _errorMessage = 'Failed to resend OTP');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isResending = false;
+        });
+      }
+    }
   }
 
   void _onOtpChanged() {
@@ -32,6 +95,7 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
     _otpController.removeListener(_onOtpChanged);
     _otpController.dispose();
     _otpFocusNode.dispose();
+    _resendTimer?.cancel();
     super.dispose();
   }
 
@@ -128,22 +192,30 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
                                         ),
                                       ),
                                       SizedBox(height: isCompact ? 8 : 14),
-                                      RichText(
-                                        text: TextSpan(
-                                          style: GoogleFonts.inter(
-                                            color: EditoColors.dark,
-                                            fontSize: isNarrow ? (isCompact ? 14 : 16) : (isCompact ? 16 : 19),
-                                            fontWeight: FontWeight.w800,
-                                          ),
-                                          children: const [
-                                            TextSpan(text: '+91 98765 43210  '),
-                                            TextSpan(
-                                              text: 'Change',
-                                              style: TextStyle(
-                                                color: EditoColors.primary,
-                                              ),
+                                      GestureDetector(
+                                        onTap: () => Navigator.of(context).pop(),
+                                        child: RichText(
+                                          text: TextSpan(
+                                            style: GoogleFonts.inter(
+                                              color: EditoColors.dark,
+                                              fontSize: isNarrow ? (isCompact ? 13 : 15) : (isCompact ? 15 : 17),
+                                              fontWeight: FontWeight.w800,
                                             ),
-                                          ],
+                                            children: [
+                                              TextSpan(
+                                                text: '${widget.email}  ',
+                                                style: const TextStyle(
+                                                  overflow: TextOverflow.ellipsis,
+                                                ),
+                                              ),
+                                              const TextSpan(
+                                                text: 'Change',
+                                                style: TextStyle(
+                                                  color: EditoColors.primary,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
                                         ),
                                       ),
                                     ],
@@ -204,40 +276,84 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
                       _ContinueButton(
                         label: 'Verify & Continue',
                         height: isCompact ? 58 : 66,
-                        onTap: () {
+                        isLoading: _isLoading,
+                        onTap: () async {
+                          if (_isLoading) return;
                           final otp = _otpController.text.trim();
                           if (otp.length < 6) {
                             setState(() {
                               _errorMessage = 'Please enter the 6-digit OTP code';
                             });
-                          } else {
+                            return;
+                          }
+
+                          setState(() {
+                            _isLoading = true;
+                            _errorMessage = null;
+                          });
+
+                          try {
+                            if (widget.flowType == 'register') {
+                              final res = await ApiClient.verifyEmail(widget.email, otp);
+                              final data = res['data'];
+                              final id = data?['id'] as String? ?? '';
+                              ApiClient.setSession(AuthSession(
+                                id: id,
+                                email: widget.email,
+                                token: 'dummy_signup_token',
+                              ));
+                            } else {
+                              final res = await ApiClient.verifyLoginOtp(widget.email, otp);
+                              final data = res['data'];
+                              final token = data?['token'] as String? ?? '';
+                              final user = data?['user'];
+                              final id = user?['id'] as String? ?? '';
+                              ApiClient.setSession(AuthSession(
+                                id: id,
+                                email: widget.email,
+                                token: token,
+                              ));
+                            }
+                            if (!mounted) return;
                             setState(() {
-                              _errorMessage = null;
                               _showSuccessAnimation = true;
                             });
+                          } on ApiException catch (e) {
+                            setState(() => _errorMessage = e.message);
+                          } catch (e) {
+                            setState(() => _errorMessage = 'Failed to connect to the server');
+                          } finally {
+                            if (mounted) setState(() => _isLoading = false);
                           }
                         },
                       ),
                       SizedBox(height: isCompact ? 24 : 44),
-                      Text.rich(
-                        TextSpan(
-                          style: GoogleFonts.inter(
-                            color: EditoColors.body.withValues(alpha: 0.72),
-                            fontSize: isCompact ? 14 : 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                          children: const [
-                            TextSpan(text: "Didn't receive the code?  "),
-                            TextSpan(
-                              text: 'Resend OTP in 00:28',
-                              style: TextStyle(
-                                color: EditoColors.primary,
-                                fontWeight: FontWeight.w800,
-                              ),
+                      GestureDetector(
+                        onTap: _canResend && !_isResending ? _onResendOtp : null,
+                        child: Text.rich(
+                          TextSpan(
+                            style: GoogleFonts.inter(
+                              color: EditoColors.body.withValues(alpha: 0.72),
+                              fontSize: isCompact ? 14 : 16,
+                              fontWeight: FontWeight.w600,
                             ),
-                          ],
+                            children: [
+                              const TextSpan(text: "Didn't receive the code?  "),
+                              TextSpan(
+                                text: _canResend
+                                    ? (_isResending ? 'Resending...' : 'Resend OTP')
+                                    : 'Resend OTP in 00:${_secondsRemaining.toString().padLeft(2, '0')}',
+                                style: TextStyle(
+                                  color: _canResend && !_isResending
+                                      ? EditoColors.primary
+                                      : EditoColors.muted,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ],
+                          ),
+                          textAlign: TextAlign.center,
                         ),
-                        textAlign: TextAlign.center,
                       ),
                       SizedBox(height: isCompact ? 40 : 132),
                       const _PrivacyCard(),
@@ -251,6 +367,9 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
           if (_showSuccessAnimation)
             Positioned.fill(
               child: SuccessVerificationAnimation(
+                message: widget.flowType == 'register'
+                    ? 'Your email address has been verified.'
+                    : 'You have logged in successfully.',
                 onAnimationComplete: () {
                   Navigator.of(context).pushReplacement(
                     MaterialPageRoute<void>(

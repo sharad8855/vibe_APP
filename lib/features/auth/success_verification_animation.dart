@@ -4,9 +4,11 @@ class SuccessVerificationAnimation extends StatefulWidget {
   const SuccessVerificationAnimation({
     super.key,
     required this.onAnimationComplete,
+    this.message = 'Your email address has been verified.',
   });
 
   final VoidCallback onAnimationComplete;
+  final String message;
 
   @override
   State<SuccessVerificationAnimation> createState() =>
@@ -212,7 +214,7 @@ class _SuccessVerificationAnimationState
                         Opacity(
                           opacity: _subtitleOpacityAnimation.value,
                           child: Text(
-                            'Your phone number has been verified.',
+                            widget.message,
                             textAlign: TextAlign.center,
                             style: GoogleFonts.inter(
                               color: Colors.white.withValues(alpha: 0.72),

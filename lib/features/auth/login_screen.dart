@@ -9,7 +9,10 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen>
     with SingleTickerProviderStateMixin {
-  final _phoneController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  bool _isSignUp = false;
+  bool _isLoading = false;
   String? _errorMessage;
   late AnimationController _animController;
   late Animation<double> _fadeAnim;
@@ -18,7 +21,8 @@ class _LoginScreenState extends State<LoginScreen>
   @override
   void initState() {
     super.initState();
-    _phoneController.addListener(_onPhoneChanged);
+    _emailController.addListener(_onFieldChanged);
+    _passwordController.addListener(_onFieldChanged);
     _animController = AnimationController(
       duration: const Duration(milliseconds: 900),
       vsync: this,
@@ -37,7 +41,7 @@ class _LoginScreenState extends State<LoginScreen>
     _animController.forward();
   }
 
-  void _onPhoneChanged() {
+  void _onFieldChanged() {
     if (_errorMessage != null) {
       setState(() => _errorMessage = null);
     }
@@ -45,24 +49,90 @@ class _LoginScreenState extends State<LoginScreen>
 
   @override
   void dispose() {
-    _phoneController.removeListener(_onPhoneChanged);
-    _phoneController.dispose();
+    _emailController.removeListener(_onFieldChanged);
+    _passwordController.removeListener(_onFieldChanged);
+    _emailController.dispose();
+    _passwordController.dispose();
     _animController.dispose();
     super.dispose();
   }
 
-  void _onContinue() {
-    final phone = _phoneController.text.trim();
-    if (phone.isEmpty) {
-      setState(() => _errorMessage = 'Please enter your mobile number');
-    } else if (phone.length < 10) {
-      setState(
-          () => _errorMessage = 'Please enter a valid 10-digit mobile number');
+  bool _isValidEmail(String email) {
+    final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+$');
+    return emailRegex.hasMatch(email);
+  }
+
+  void _onContinue() async {
+    if (_isLoading) return;
+    final email = _emailController.text.trim();
+    if (email.isEmpty) {
+      setState(() => _errorMessage = 'Please enter your email address');
+      return;
+    }
+    if (!_isValidEmail(email)) {
+      setState(() => _errorMessage = 'Please enter a valid email address');
+      return;
+    }
+
+    if (_isSignUp) {
+      final password = _passwordController.text;
+      if (password.isEmpty) {
+        setState(() => _errorMessage = 'Please enter a password');
+        return;
+      }
+      if (password.length < 8) {
+        setState(() => _errorMessage = 'Password must be at least 8 characters');
+        return;
+      }
+      
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
+
+      try {
+        await ApiClient.register(email, password);
+        if (!mounted) return;
+        Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => VerifyOtpScreen(
+              email: email,
+              flowType: 'register',
+            ),
+          ),
+        );
+      } on ApiException catch (e) {
+        setState(() => _errorMessage = e.message);
+      } catch (e) {
+        setState(() => _errorMessage = 'Failed to connect to the server');
+      } finally {
+        if (mounted) setState(() => _isLoading = false);
+      }
     } else {
-      setState(() => _errorMessage = null);
-      Navigator.of(context).push(
-        MaterialPageRoute<void>(builder: (_) => const VerifyOtpScreen()),
-      );
+      // Login flow
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
+
+      try {
+        await ApiClient.loginOtp(email);
+        if (!mounted) return;
+        Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => VerifyOtpScreen(
+              email: email,
+              flowType: 'login',
+            ),
+          ),
+        );
+      } on ApiException catch (e) {
+        setState(() => _errorMessage = e.message);
+      } catch (e) {
+        setState(() => _errorMessage = 'Failed to connect to the server');
+      } finally {
+        if (mounted) setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -119,7 +189,7 @@ class _LoginScreenState extends State<LoginScreen>
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Login to continue',
+                          _isSignUp ? 'Create your account' : 'Login to continue',
                           style: GoogleFonts.inter(
                             color: EditoColors.body,
                             fontSize: 14,
@@ -128,11 +198,100 @@ class _LoginScreenState extends State<LoginScreen>
                         ),
                         const SizedBox(height: 24),
 
-                        // phone field
-                        _PhoneField(
-                          controller: _phoneController,
+                        // Premium Sliding Tab Selector
+                        Container(
+                          height: 50,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF0EEFF),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              final width = constraints.maxWidth / 2;
+                              return Stack(
+                                children: [
+                                  AnimatedPositioned(
+                                    duration: const Duration(milliseconds: 250),
+                                    curve: Curves.easeInOutCubic,
+                                    left: _isSignUp ? width : 0,
+                                    top: 3,
+                                    bottom: 3,
+                                    child: Container(
+                                      width: width - 6,
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(9),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: EditoColors.primary.withValues(alpha: 0.12),
+                                            blurRadius: 8,
+                                            offset: const Offset(0, 3),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: GestureDetector(
+                                          behavior: HitTestBehavior.opaque,
+                                          onTap: () => setState(() {
+                                            _isSignUp = false;
+                                            _errorMessage = null;
+                                          }),
+                                          child: Center(
+                                            child: Text(
+                                              'Login',
+                                              style: GoogleFonts.poppins(
+                                                color: !_isSignUp ? EditoColors.dark : EditoColors.muted,
+                                                fontWeight: FontWeight.w700,
+                                                fontSize: 14,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      Expanded(
+                                        child: GestureDetector(
+                                          behavior: HitTestBehavior.opaque,
+                                          onTap: () => setState(() {
+                                            _isSignUp = true;
+                                            _errorMessage = null;
+                                          }),
+                                          child: Center(
+                                            child: Text(
+                                              'Sign Up',
+                                              style: GoogleFonts.poppins(
+                                                color: _isSignUp ? EditoColors.dark : EditoColors.muted,
+                                                fontWeight: FontWeight.w700,
+                                                fontSize: 14,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              );
+                            },
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+
+                        // Form fields
+                        _EmailField(
+                          controller: _emailController,
                           hasError: _errorMessage != null,
                         ),
+                        if (_isSignUp) ...[
+                          const SizedBox(height: 16),
+                          _PasswordField(
+                            controller: _passwordController,
+                            hasError: _errorMessage != null,
+                          ),
+                        ],
 
                         // error
                         if (_errorMessage != null) ...[
@@ -158,8 +317,12 @@ class _LoginScreenState extends State<LoginScreen>
 
                         const SizedBox(height: 16),
 
-                        // Continue button
-                        _ContinueBtn(onTap: _onContinue),
+                        // Continue / Register button
+                        _ContinueBtn(
+                          onTap: _onContinue,
+                          isLoading: _isLoading,
+                          label: _isSignUp ? 'Register' : 'Continue',
+                        ),
 
                         const SizedBox(height: 20),
 
@@ -497,11 +660,11 @@ class _FilmStripPainter extends CustomPainter {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Phone Number Field (+91 | Enter mobile number)
+// Email Input Field
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _PhoneField extends StatelessWidget {
-  const _PhoneField({required this.controller, this.hasError = false});
+class _EmailField extends StatelessWidget {
+  const _EmailField({required this.controller, this.hasError = false});
 
   final TextEditingController controller;
   final bool hasError;
@@ -514,56 +677,20 @@ class _PhoneField extends StatelessWidget {
         color: const Color(0xFFF7F6FF),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: hasError
-              ? const Color(0xFFFF3356)
-              : const Color(0xFFE0DCFF),
+          color: hasError ? const Color(0xFFFF3356) : const Color(0xFFE0DCFF),
           width: 1.5,
         ),
       ),
       child: Row(
         children: [
-          // Country code section
-          GestureDetector(
-            onTap: () {},
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14),
-              child: Row(
-                children: [
-                  Text(
-                    '+91',
-                    style: GoogleFonts.inter(
-                      color: EditoColors.dark,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  const Icon(
-                    Icons.keyboard_arrow_down_rounded,
-                    color: EditoColors.body,
-                    size: 20,
-                  ),
-                ],
-              ),
-            ),
-          ),
-          // divider
-          Container(width: 1, height: 28, color: const Color(0xFFDDD9FF)),
+          const SizedBox(width: 16),
+          const Icon(Icons.email_outlined, color: EditoColors.muted, size: 18),
           const SizedBox(width: 12),
-          // phone icon
-          const Icon(Icons.phone_outlined, color: EditoColors.muted, size: 18),
-          const SizedBox(width: 8),
-          // text field
           Expanded(
             child: TextField(
               controller: controller,
-              keyboardType: TextInputType.phone,
-              textInputAction: TextInputAction.done,
-              maxLength: 10,
-              inputFormatters: [
-                FilteringTextInputFormatter.digitsOnly,
-                LengthLimitingTextInputFormatter(10),
-              ],
+              keyboardType: TextInputType.emailAddress,
+              textInputAction: TextInputAction.next,
               cursorColor: EditoColors.primary,
               style: GoogleFonts.inter(
                 color: EditoColors.dark,
@@ -571,16 +698,14 @@ class _PhoneField extends StatelessWidget {
                 fontWeight: FontWeight.w600,
               ),
               decoration: InputDecoration(
-                counterText: '',
                 border: InputBorder.none,
-                hintText: 'Enter mobile number',
+                hintText: 'Enter email address',
                 hintStyle: GoogleFonts.inter(
                   color: EditoColors.muted,
                   fontSize: 15,
                   fontWeight: FontWeight.w500,
                 ),
               ),
-              onSubmitted: (_) => FocusScope.of(context).unfocus(),
             ),
           ),
           const SizedBox(width: 14),
@@ -591,13 +716,90 @@ class _PhoneField extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Continue Button (deep purple gradient with arrow)
+// Password Input Field
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _PasswordField extends StatefulWidget {
+  const _PasswordField({required this.controller, this.hasError = false});
+
+  final TextEditingController controller;
+  final bool hasError;
+
+  @override
+  State<_PasswordField> createState() => _PasswordFieldState();
+}
+
+class _PasswordFieldState extends State<_PasswordField> {
+  bool _obscure = true;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 56,
+      decoration: BoxDecoration(
+        color: const Color(0xFFF7F6FF),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: widget.hasError ? const Color(0xFFFF3356) : const Color(0xFFE0DCFF),
+          width: 1.5,
+        ),
+      ),
+      child: Row(
+        children: [
+          const SizedBox(width: 16),
+          const Icon(Icons.lock_outlined, color: EditoColors.muted, size: 18),
+          const SizedBox(width: 12),
+          Expanded(
+            child: TextField(
+              controller: widget.controller,
+              obscureText: _obscure,
+              textInputAction: TextInputAction.done,
+              cursorColor: EditoColors.primary,
+              style: GoogleFonts.inter(
+                color: EditoColors.dark,
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+              ),
+              decoration: InputDecoration(
+                border: InputBorder.none,
+                hintText: 'Enter password',
+                hintStyle: GoogleFonts.inter(
+                  color: EditoColors.muted,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ),
+          IconButton(
+            icon: Icon(
+              _obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+              color: EditoColors.muted,
+              size: 20,
+            ),
+            onPressed: () => setState(() => _obscure = !_obscure),
+          ),
+          const SizedBox(width: 6),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Continue Button (deep purple gradient with arrow/spinner)
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _ContinueBtn extends StatefulWidget {
-  const _ContinueBtn({required this.onTap});
+  const _ContinueBtn({
+    required this.onTap,
+    this.isLoading = false,
+    required this.label,
+  });
 
   final VoidCallback onTap;
+  final bool isLoading;
+  final String label;
 
   @override
   State<_ContinueBtn> createState() => _ContinueBtnState();
@@ -609,14 +811,18 @@ class _ContinueBtnState extends State<_ContinueBtn> {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTapDown: (_) => setState(() => _pressed = true),
+      onTapDown: (_) {
+        if (!widget.isLoading) setState(() => _pressed = true);
+      },
       onTapUp: (_) {
-        setState(() => _pressed = false);
-        widget.onTap();
+        if (!widget.isLoading) {
+          setState(() => _pressed = false);
+          widget.onTap();
+        }
       },
       onTapCancel: () => setState(() => _pressed = false),
       child: AnimatedScale(
-        scale: _pressed ? 0.97 : 1.0,
+        scale: _pressed || widget.isLoading ? 0.97 : 1.0,
         duration: const Duration(milliseconds: 120),
         child: Container(
           height: 54,
@@ -635,33 +841,44 @@ class _ContinueBtnState extends State<_ContinueBtn> {
               ),
             ],
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                'Continue',
-                style: GoogleFonts.poppins(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
+          child: widget.isLoading
+              ? const Center(
+                  child: SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2.5,
+                    ),
+                  ),
+                )
+              : Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      widget.label,
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Container(
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.22),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.arrow_forward_rounded,
+                        color: Colors.white,
+                        size: 16,
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              const SizedBox(width: 10),
-              Container(
-                width: 28,
-                height: 28,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.22),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(
-                  Icons.arrow_forward_rounded,
-                  color: Colors.white,
-                  size: 16,
-                ),
-              ),
-            ],
-          ),
         ),
       ),
     );
